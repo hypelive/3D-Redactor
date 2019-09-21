@@ -1,15 +1,11 @@
 import sys
-from PyQt5 import QtGui, QtWidgets  #here is matrix
+from PyQt5 import QtGui, QtWidgets, QtCore  #here is matrix
+import redactor
+
 
 def main():
     application = QtWidgets.QApplication(sys.argv)
-    window = QtWidgets.QWidget()
-    window.setGeometry(0, 0, 480, 270)  #x y wide tall
-    layout = QtWidgets.QVBoxLayout()
-    layout.addWidget(QtWidgets.QPushButton("choose file..."))
-    layout.addWidget(QtWidgets.QLineEdit("enter the filename"))
-    window.setLayout(layout)
-    window.show()
+    redactor_window = redactor.RedactorWindow() 
     application.exec_()
 
 
