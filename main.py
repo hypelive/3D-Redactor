@@ -1,6 +1,7 @@
 import sys
 from PyQt5 import QtGui, QtWidgets, QtCore  #here is matrix
 import redactor
+import geometry
 
 
 def main():
