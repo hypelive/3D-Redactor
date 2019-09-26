@@ -1,12 +1,12 @@
 import sys
+import time
 from PyQt5 import QtGui, QtWidgets, QtCore  #here is matrix
 import redactor
-import geometry
 
 
 def main():
     application = QtWidgets.QApplication(sys.argv)
-    redactor_window = redactor.RedactorWindow() 
+    redactor_window = redactor.RedactorWindow()
     application.exec_()
 
 
