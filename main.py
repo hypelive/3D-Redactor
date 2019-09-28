@@ -2,6 +2,7 @@ import sys
 import time
 from PyQt5 import QtGui, QtWidgets, QtCore  #here is matrix
 import redactor
+from geometry import Matrix
 
 
 def main():
