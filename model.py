@@ -9,7 +9,7 @@ class Model():
         self.objects = []
 
     def add_point(self):
-        pass
+        self.objects.append(Point(0, 0, 0, 1))
 
     def add_line(self):
         pass

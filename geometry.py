@@ -81,4 +81,11 @@ class Matrix():
                             self.table[0][2]*other[2][0], self.table[1][0]*other[0][0] +
                             self.table[1][1]*other[1][0] + self.table[1][0]*other[2][0])
 
+    def to_tuple(self):
+        line = []
+        for string in self.table:
+            for element in string:
+                line.append(element)
+        return tuple(line)
+
 
