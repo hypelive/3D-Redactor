@@ -11,19 +11,13 @@ class Model():
         self.update_matrix_of_display()
 
     def add_point(self):
-        self.objects.append(Point(0, 0, 0, 1))
+        self.objects.append(Point(0, 0, 0, 10))
 
     def add_line(self):
         pass
 
     def add_plate(self):
         pass
-
-    def update_display(self): 
-        for obj in self.objects:
-            if isinstance(obj, Point):
-                display_coord = (self.matrix_of_display * Matrix(3, 1, obj.x, obj.y, obj.z)).to_tuple()
-                #print point with radius in display coord
 
     def get_display_vector_on_plate_of_display(self, vector):
         normal_vector = self.display_plate_basis[0] * self.display_plate_basis[1]
