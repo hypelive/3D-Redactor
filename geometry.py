@@ -76,10 +76,18 @@ class Matrix():
     def __mul__(self, other):  #only for matix 2x3 * 3x1
         if isinstance(other, Matrix):
             if self.column != len(other.table):
-                raise ValueError("Incorrect multily")
-            return Matrix(2, 1, self.table[0][0]*other[0][0] + self.table[0][1]*other[1][0] +
-                            self.table[0][2]*other[2][0], self.table[1][0]*other[0][0] +
-                            self.table[1][1]*other[1][0] + self.table[1][0]*other[2][0])
+                raise ValueError("Incorrect multiply")
+            ceils = []
+            for i in range(len(self.table)):
+                for j in range(other.column):
+                    res = 0
+                    for x in range(self.column):
+                        res += self[i][x]*other[x][j]
+                    ceils.append(res) 
+            return Matrix(len(self.table), other.column, *ceils)
+            #return Matrix(2, 1, self.table[0][0]*other[0][0] + self.table[0][1]*other[1][0] +
+                            #self.table[0][2]*other[2][0], self.table[1][0]*other[0][0] +
+                            #self.table[1][1]*other[1][0] + self.table[1][0]*other[2][0])
 
     def to_tuple(self):
         line = []

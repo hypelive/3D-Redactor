@@ -32,3 +32,7 @@ class GeometryTests(unittest.TestCase):
         self.assertEqual(matrix.solve_matrix_by_gauss(), (3, 2))
         matrix = Matrix(3, 4, 2, -1, -1, 4, 3, 4, -2, 11, 3, -2, 4, 11)
         self.assertEqual(matrix.solve_matrix_by_gauss(), (3, 1, 1))
+
+    def test_matrix_multiply(self):
+        self.assertEqual((Matrix(2, 3, 1, 0, 0, 0, 1, 0)*Matrix(3, 1, 1, 0, 0)).to_tuple(), (1, 0))
+        self.assertEqual((Matrix(3, 3, 1, 2, 3, 2, 3, 1, 4, 1, 2)*Matrix(3, 2, 2, 2, 3, 1, 1, 2)).to_tuple(), (11, 10, 14, 9, 13, 13))
