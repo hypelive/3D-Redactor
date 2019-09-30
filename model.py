@@ -17,7 +17,9 @@ class Model():
         self.objects.append(Line(point1, point2, 5))
 
     def add_plate(self, point1, point2, point3, point4):
-        pass
+        self.objects.append(Plate(Line(point1, point2, 5),
+                            Line(point3, point4, 5), 5,
+                            Vector3(1, 0, 0)))
 
     def get_display_vector_on_plate_of_display(self, vector):
         normal_vector = self.display_plate_basis[0] * self.display_plate_basis[1]

@@ -93,10 +93,12 @@ class RedactorWindow(QtWidgets.QMainWindow):
 
     def paint_plate(self, plate, painter):
         self.paint_line(Line(plate.first_line.start, plate.second_line.start, 5), painter)
-        self.paint_line(Line(plate.first_line.start, plate.second_line.start, 5), painter)
-        self.paint_line(Line(plate.first_line.start, plate.second_line.start, 5), painter)
-        self.paint_line(Line(plate.first_line.start, plate.second_line.start, 5), painter)
-        painter.pen.setWidth(max(5, 2*plate.first_line.radius))
+        self.paint_line(Line(plate.first_line.start, plate.second_line.end, 5), painter)
+        self.paint_line(Line(plate.first_line.end, plate.second_line.start, 5), painter)
+        self.paint_line(Line(plate.first_line.end, plate.second_line.end, 5), painter)
+        self.paint_line(Line(plate.first_line.end, plate.first_line.start, 5), painter)
+        self.paint_line(Line(plate.second_line.start, plate.second_line.end, 5), painter)
+        painter.pen().setWidth(max(5, 2*plate.first_line.radius))
         #painter.draw
 
     def mousePressEvent(self, event):
@@ -110,6 +112,16 @@ class RedactorWindow(QtWidgets.QMainWindow):
                 self.mode = "drag plate"
                 self.point_buffer = []
                 self.object_to_interact = None
+        if self.mode == "plate":
+            self.update_object_to_interact(event)
+            self.point_buffer.append(self.object_to_interact)
+            if len(self.point_buffer) == 4:
+                self.model.add_plate(self.point_buffer[0], self.point_buffer[1],
+                                     self.point_buffer[2], self.point_buffer[3])
+                self.mode = "drag plate"
+                self.point_buffer = []
+                self.object_to_interact = None
+        self.object_to_interact = None
         self.last_x = event.x()   #0
         self.last_y = event.y()   #40
         self.last_time_clicked = time.time()
@@ -178,6 +190,5 @@ class RedactorWindow(QtWidgets.QMainWindow):
     
     def add_plate(self):
         if self.model:
-            if len(self.point_buffer) == 4:
-                self.model.add_plate(self.point_buffer[0], self.point_buffer[1],
-                                     self.point_buffer[2], self.point_buffer[3])
+            self.mode = self.modes[QtCore.Qt.Key_P]
+            self.update_display()
