@@ -8,7 +8,8 @@ from geometry import Matrix
 def main():
     application = QtWidgets.QApplication(sys.argv)
     redactor_window = redactor.RedactorWindow()
-    redactor_window.showMaximized()
+    redactor_window.setFixedSize(1200, 625)
+    redactor_window.show()
     application.exec_()
 
 

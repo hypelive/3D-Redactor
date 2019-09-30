@@ -7,4 +7,6 @@ test for other and read for graphic
 
 distance from point_of_click to point
 grab objects
-add line and plate 
+add line and plate
+
+Is bug that one point drag if i navigate to other 

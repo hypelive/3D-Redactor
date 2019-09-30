@@ -11,12 +11,12 @@ class Model():
         self.update_matrix_of_display()
 
     def add_point(self):
-        self.objects.append(Point(0, 0, 0, 10))
+        self.objects.append(Point(0, 0, 0, 100))
 
-    def add_line(self):
-        pass
+    def add_line(self, point1, point2):
+        self.objects.append(Line(point1, point2, 5))
 
-    def add_plate(self):
+    def add_plate(self, point1, point2, point3, point4):
         pass
 
     def get_display_vector_on_plate_of_display(self, vector):

@@ -28,7 +28,9 @@ class Point():
     
     def __add__(self, other):
         if isinstance(other, Vector3):
-            return Point(self.x + other.x, self.y + other.y, self.z + other.z, self.radius)
+            self.x += other.x
+            self.y += other.y
+            self.z += other.z
 
 class Line():
     def __init__(self, start : Point, end : Point, radius : float):
