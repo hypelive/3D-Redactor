@@ -19,6 +19,19 @@ class RedactorWindow(QtWidgets.QMainWindow):
             QtCore.Qt.Key_E : "drag plate",
             QtCore.Qt.Key_L : "line",
             QtCore.Qt.Key_P : "plate"}
+        rotate_angle = math.pi / 90
+        self.rotate = {
+            QtCore.Qt.Key_W : Matrix(3, 3, math.cos(rotate_angle),
+                                     -math.sin(rotate_angle), 0,
+                                     math.sin(rotate_angle),
+                                     math.cos(rotate_angle),
+                                     0, 0, 0, 1),
+            QtCore.Qt.Key_D : Matrix(3, 3, 1, 0, 0, 0,
+                                     math.cos(rotate_angle),
+                                     -math.sin(rotate_angle), 0,
+                                     math.sin(rotate_angle),
+                                     math.cos(rotate_angle))
+        }
         self.mode = "drag plate"
         self.object_to_interact = None
         self.initGUI()
@@ -135,17 +148,16 @@ class RedactorWindow(QtWidgets.QMainWindow):
                 if not self.object_to_interact: #in seconds
                     self.update_object_to_interact(event)
                 if self.object_to_interact:
-                    self.object_to_interact + Vector3(
-                                            event.x() - self.last_x,
-                                            event.y() - self.last_y,
-                                            0)
+                    self.object_to_interact + (
+                                self.model.display_plate_basis[0]*(event.x() - self.last_x) +
+                                self.model.display_plate_basis[1]*(event.y() - self.last_y))
             else:
                 self.object_to_interact = None
         elif self.mode == "drag plate":
             if time.time() - self.last_time_clicked < 0.15:
-                self.model.display_plate_origin + Vector3(event.x() - self.last_x,
-                                                        event.y() - self.last_y,
-                                                        0)
+                self.model.display_plate_origin + (
+                                self.model.display_plate_basis[0]*(event.x() - self.last_x) +
+                                self.model.display_plate_basis[1]*(event.y() - self.last_y))
         self.last_x = event.x()   #0
         self.last_y = event.y()   #40
         self.last_time_clicked = time.time()
@@ -157,6 +169,8 @@ class RedactorWindow(QtWidgets.QMainWindow):
         if event.key() in self.modes:
             self.mode = self.modes[event.key()]
             self.point_buffer = []
+        elif event.key() in self.rotate:
+            self.model.update_matrix_of_display(self.rotate[event.key()])
         self.update_display()
 
     def update_object_to_interact(self, event):

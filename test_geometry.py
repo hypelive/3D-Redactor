@@ -36,3 +36,7 @@ class GeometryTests(unittest.TestCase):
     def test_matrix_multiply(self):
         self.assertEqual((Matrix(2, 3, 1, 0, 0, 0, 1, 0)*Matrix(3, 1, 1, 0, 0)).to_tuple(), (1, 0))
         self.assertEqual((Matrix(3, 3, 1, 2, 3, 2, 3, 1, 4, 1, 2)*Matrix(3, 2, 2, 2, 3, 1, 1, 2)).to_tuple(), (11, 10, 14, 9, 13, 13))
+    
+    def test_matrix_transpose(self):
+        self.assertEqual(Matrix(2, 2, 1, 0, 1, 1).transpose().to_tuple(), (1, 1, 0, 1))
+        self.assertEqual(Matrix(3, 3, 1, 4, 1, 2, 2, 7, 13, 5, 3).transpose().to_tuple(), (1, 2, 13, 4, 2, 5, 1, 7, 3))

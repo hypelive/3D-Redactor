@@ -4,11 +4,11 @@ class Model():
     def __init__(self):
         self.basis = (Vector3(1, 0, 0), Vector3(0, 1, 0), Vector3(0, 0, 1))
         self.origin = Point(0, 0, 0, 0)
-        self.display_plate_basis = (Vector3(1, 0, 1), Vector3(0, 1, 0))   #2d
+        self.display_plate_basis = [Vector3(1, 0, 0), Vector3(0, 1, 0)]   #2d
         self.display_plate_origin = Point(0, 0, -10, 0)
         self.objects = []
         self.matrix_of_display = None
-        self.update_matrix_of_display()
+        self.update_matrix_of_display(None)
 
     def add_point(self):
         self.objects.append(Point(0, 0, 0, 100))
@@ -36,13 +36,15 @@ class Model():
                         displayed_vector.z)
         return matrix.solve_matrix_by_gauss()
 
-    def update_matrix_of_display(self):
-        if not self.matrix_of_display:
+    def update_matrix_of_display(self, ort_matrix : Matrix):
+        if not ort_matrix:
             a = self.get_display_vector_on_plate_of_display(self.basis[0])
             b = self.get_display_vector_on_plate_of_display(self.basis[1])
             c = self.get_display_vector_on_plate_of_display(self.basis[2])
             self.matrix_of_display = Matrix(2, 3, a[0], b[0], c[0], a[1], b[1], c[1])
         else:
-            #self.matrix_of_display * matrix of ortagonal display
-            pass      
+            #self.matrix_of_display = ort_matrix.transpose()*self.matrix_of_display*ort_matrix
+            self.display_plate_basis[0] = Vector3(*((ort_matrix*self.display_plate_basis[0].to_matrix()).to_tuple()))
+            self.display_plate_basis[1] = Vector3(*((ort_matrix*self.display_plate_basis[1].to_matrix()).to_tuple()))
+            self.update_matrix_of_display(None)     
 
