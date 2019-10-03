@@ -19,18 +19,28 @@ class RedactorWindow(QtWidgets.QMainWindow):
             QtCore.Qt.Key_E : "drag plate",
             QtCore.Qt.Key_L : "line",
             QtCore.Qt.Key_P : "plate"}
-        rotate_angle = math.pi / 90
+        rotate_angle = math.pi / 45
         self.rotate = {
-            QtCore.Qt.Key_W : Matrix(3, 3, math.cos(rotate_angle),
+            QtCore.Qt.Key_D : Matrix(3, 3, math.cos(rotate_angle),
                                      -math.sin(rotate_angle), 0,
                                      math.sin(rotate_angle),
                                      math.cos(rotate_angle),
                                      0, 0, 0, 1),
-            QtCore.Qt.Key_D : Matrix(3, 3, 1, 0, 0, 0,
+            QtCore.Qt.Key_W : Matrix(3, 3, 1, 0, 0, 0,
                                      math.cos(rotate_angle),
                                      -math.sin(rotate_angle), 0,
                                      math.sin(rotate_angle),
-                                     math.cos(rotate_angle))
+                                     math.cos(rotate_angle)),
+            QtCore.Qt.Key_A : Matrix(3, 3, math.cos(-rotate_angle),
+                                     -math.sin(-rotate_angle), 0,
+                                     math.sin(-rotate_angle),
+                                     math.cos(-rotate_angle),
+                                     0, 0, 0, 1),
+            QtCore.Qt.Key_S : Matrix(3, 3, 1, 0, 0, 0,
+                                     math.cos(-rotate_angle),
+                                     -math.sin(-rotate_angle), 0,
+                                     math.sin(-rotate_angle),
+                                     math.cos(-rotate_angle))
         }
         self.mode = "drag plate"
         self.object_to_interact = None
@@ -124,7 +134,6 @@ class RedactorWindow(QtWidgets.QMainWindow):
                 self.model.add_line(self.point_buffer[0], self.point_buffer[1])
                 self.mode = "drag plate"
                 self.point_buffer = []
-                self.object_to_interact = None
         if self.mode == "plate":
             self.update_object_to_interact(event)
             self.point_buffer.append(self.object_to_interact)
@@ -133,7 +142,6 @@ class RedactorWindow(QtWidgets.QMainWindow):
                                      self.point_buffer[2], self.point_buffer[3])
                 self.mode = "drag plate"
                 self.point_buffer = []
-                self.object_to_interact = None
         self.object_to_interact = None
         self.last_x = event.x()   #0
         self.last_y = event.y()   #40

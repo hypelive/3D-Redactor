@@ -24,6 +24,9 @@ class Vector3():
     
     def to_matrix(self):
         return Matrix(3, 1, self.x, self.y, self.z)
+    
+    def to_tuple(self):
+        return(self.x, self.y, self.z)
 
 class Vector2():
     def __init__(self, x : float, y : float):
@@ -80,6 +83,9 @@ class Matrix():
             if (n >= len(self.table)):
                 break #delete zero strings
             temp = self.table[n][n]
+            if temp == 0:
+                n += 1
+                continue
             for i in range(self.column):
                 self.table[n][i] = self.table[n][i] / temp  #first elem is 1 then
             for i in range(len(self.table)):
@@ -90,7 +96,7 @@ class Matrix():
             n += 1
         return tuple([string[self.column - 1] for string in self.table])
     
-    def __mul__(self, other):  #only for matix 2x3 * 3x1
+    def __mul__(self, other):
         if isinstance(other, Matrix):
             if self.column != len(other.table):
                 raise ValueError("Incorrect multiply")
