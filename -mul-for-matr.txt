@@ -1,8 +1,0 @@
-def __mul__(self, other):
-        if isinstance(other, Matrix):
-            if self.column != len(other.table):
-                raise ValueError("Incorrect multily")
-            result = Matrix(len(self.table), other.column, *[0 for _ in range(len(self.table) * other.column)])
-            for i in range(len(self.table) * other.column):
-                for j in range(self.column):
-                    result[i // self.column][i % self.column] = sum...
