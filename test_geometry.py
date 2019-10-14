@@ -1,5 +1,6 @@
 import unittest
-from geometry import Vector3, Matrix      
+from geometry import Vector3, Matrix
+import math      
 
 class GeometryTests(unittest.TestCase):
     def test_vector_create(self):
@@ -39,6 +40,8 @@ class GeometryTests(unittest.TestCase):
         self.assertEqual((Matrix(3, 3, 1, 2, 3, 2, 3, 1, 4, 1, 2)*\
                          Matrix(3, 2, 2, 2, 3, 1, 1, 2)).to_tuple(),
                          (11, 10, 14, 9, 13, 13))
+        self.assertEqual((Matrix(3, 3, 1, 0, 0, 0, 0, -1, 0, 1, 0) * Matrix(3, 3, 0, 0, -1, 1, 0, 0, 0, 1, 0)).to_tuple(),
+                        (0, 0, -1, 0, -1, 0, 1, 0, 0))
     
     def test_matrix_transpose(self):
         self.assertEqual(Matrix(2, 2, 1, 0, 1, 1).transpose().to_tuple(),

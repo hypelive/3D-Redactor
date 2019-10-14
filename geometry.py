@@ -38,7 +38,7 @@ class Vector2():
 
 
 class Point():
-    def __init__(self, x: float, y: float, z: float, radius: float):
+    def __init__(self, x: float, y: float, z: float, radius = 0):
         self.x = x
         self.y = y
         self.z = z
@@ -117,6 +117,8 @@ class Matrix():
                         res += self[i][x]*other[x][j]
                     ceils.append(res)
             return Matrix(len(self.table), other.column, *ceils)
+        if isinstance(other, Vector3):
+            return self * (other.to_matrix())
 
     def transpose(self):
         if len(self.table) != self.column:
