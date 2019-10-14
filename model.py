@@ -13,6 +13,7 @@ class Model():
         self.objects = []
         self.matrix_of_display = None
         self.update_matrix_of_display(None)
+        pass
 
     def add_point(self):
         self.objects.append(Point(0, 0, 0, 10))
