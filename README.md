@@ -19,3 +19,6 @@ ver: pre-alpha 0.0001
 
 поворот плоскости производится с помощью клавиш (W, A, S, D) 
 
+plan to week:
+translate to numpy and fix bug with rotate
+
