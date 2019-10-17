@@ -11,6 +11,7 @@ class RedactorWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
         self.model = None
+        self.split_coordinates = (600, 150)
         self.points_display_table = {}
         self.point_buffer = []
         self.last_x = None
@@ -21,7 +22,7 @@ class RedactorWindow(QtWidgets.QMainWindow):
             QtCore.Qt.Key_E: "drag plate",
             QtCore.Qt.Key_L: "line",
             QtCore.Qt.Key_P: "plate"}
-        rotate_angle = math.pi / 5
+        rotate_angle = math.pi / 90
         self.rotate = {
             QtCore.Qt.Key_D: Matrix(3, 3, math.cos(rotate_angle),
                                     -math.sin(rotate_angle), 0,
@@ -94,6 +95,8 @@ class RedactorWindow(QtWidgets.QMainWindow):
         painter.setPen(QtGui.QPen(QtCore.Qt.red, 5, QtCore.Qt.SolidLine))
         painter.setBrush(QtGui.QBrush(QtCore.Qt.red))
         painter.fillRect(0, 0, 1200, 625, QtGui.QGradient.Preset(12))
+        #need system of coordinates display
+        self.draw_coordinates_system(painter)
         for obj in self.model.objects:
             if isinstance(obj, Point):
                 self.paint_point(obj, painter)
@@ -105,12 +108,33 @@ class RedactorWindow(QtWidgets.QMainWindow):
         painter.end()
         self.update()
 
+    def draw_coordinates_system(self, painter : QtGui.QPainter):
+        painter.setPen(QtGui.QPen(QtCore.Qt.blue, 3, QtCore.Qt.SolidLine))
+        self.paint_point(self.model.origin, painter)
+        
+        painter.setPen(QtGui.QPen(QtCore.Qt.green, 3, QtCore.Qt.SolidLine))
+        temp_point = Point(self.model.basis[0].x * 50, self.model.basis[0].y * 50, self.model.basis[0].z * 50, 5)
+        self.paint_point(temp_point, painter)
+        self.paint_line(Line(self.model.origin, temp_point, 5), painter)
+        
+        painter.setPen(QtGui.QPen(QtCore.Qt.black, 3, QtCore.Qt.SolidLine))
+        temp_point = Point(self.model.basis[1].x * 50, self.model.basis[1].y * 50, self.model.basis[1].z * 50, 5)
+        self.paint_point(temp_point, painter)
+        self.paint_line(Line(self.model.origin, temp_point, 5), painter)
+        
+        painter.setPen(QtGui.QPen(QtCore.Qt.yellow, 3, QtCore.Qt.SolidLine))
+        temp_point = Point(self.model.basis[2].x * 50, self.model.basis[2].y * 50, self.model.basis[2].z * 50, 5)
+        self.paint_point(temp_point, painter)
+        self.paint_line(Line(self.model.origin, temp_point, 5), painter)
+        
+        painter.setPen(QtGui.QPen(QtCore.Qt.red, 5, QtCore.Qt.SolidLine))
+
     def paint_point(self, point, painter):
         display_coord = (self.model.matrix_of_display *
                          Matrix(3, 1, point.x, point.y, point.z)).to_tuple()
         width = max(5, 2*point.radius)
-        self.points_display_table[point] = (display_coord[0] + self.model.display_plate_origin.x,
-                                            display_coord[1] + self.model.display_plate_origin.y)
+        self.points_display_table[point] = (display_coord[0] + self.model.display_plate_origin.x + self.split_coordinates[0],
+                                            display_coord[1] + self.model.display_plate_origin.y + self.split_coordinates[1])
         painter.drawEllipse(self.points_display_table[point][0] - width / 2,
                             self.points_display_table[point][1] - width / 2, width, width)
 
@@ -120,19 +144,11 @@ class RedactorWindow(QtWidgets.QMainWindow):
             *(self.points_display_table[line.start]), *(self.points_display_table[line.end]))
 
     def paint_plate(self, plate, painter):
-        self.paint_line(Line(plate.first_line.start,
-                             plate.second_line.start, 5), painter)
-        self.paint_line(Line(plate.first_line.start,
-                             plate.second_line.end, 5), painter)
-        self.paint_line(Line(plate.first_line.end,
-                             plate.second_line.start, 5), painter)
-        self.paint_line(Line(plate.first_line.end,
-                             plate.second_line.end, 5), painter)
-        self.paint_line(Line(plate.first_line.end,
-                             plate.first_line.start, 5), painter)
-        self.paint_line(Line(plate.second_line.start,
-                             plate.second_line.end, 5), painter)
         painter.pen().setWidth(max(5, 2*plate.first_line.radius))
+        painter.drawConvexPolygon(QtCore.QPointF(*(self.points_display_table[plate.first_line.start])),
+                                    QtCore.QPointF(*(self.points_display_table[plate.first_line.end])),
+                                    QtCore.QPointF(*(self.points_display_table[plate.second_line.start])),
+                                    QtCore.QPointF(*(self.points_display_table[plate.second_line.end])))
         # painter.draw
 
     def mousePressEvent(self, event):
@@ -171,14 +187,14 @@ class RedactorWindow(QtWidgets.QMainWindow):
                 if self.object_to_interact:
                     self.object_to_interact + (
                         self.model.display_plate_basis[0]*(event.x() - self.last_x) +
-                        self.model.display_plate_basis[1]*(event.y() - self.last_y))
+                        self.model.display_plate_basis[1]*(self.last_y - event.y()))
             else:
                 self.object_to_interact = None
         elif self.mode == "drag plate":
             if time.time() - self.last_time_clicked < 0.15:
                 self.model.display_plate_origin + (
                     self.model.display_plate_basis[0]*(event.x() - self.last_x) +
-                    self.model.display_plate_basis[1]*(event.y() - self.last_y))
+                    self.model.display_plate_basis[1]*(self.last_y - event.y()))
         self.last_x = event.x()  # 0
         self.last_y = event.y()  # 0
         self.last_time_clicked = time.time()

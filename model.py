@@ -6,7 +6,7 @@ class Model():
         self.basis = (Vector3(1, 0, 0), Vector3(0, 1, 0), Vector3(0, 0, 1))
         self.origin = Point(0, 0, 0, 0)
         self.display_plate_basis = [Vector3(0, 1, 0), Vector3(0, 0, 1), Vector3(-1, 0, 0)]
-        #self.display_plate_origin = Point(0, 0, -10, 0)
+        self.display_plate_origin = Point(0, 0, -10, 0)
         self.objects = []
         self.matrix_of_display = None
         self.update_matrix_of_display(None)
