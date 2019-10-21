@@ -1,4 +1,4 @@
-import numpy
+from PyQt5 import QtCore
 
 class Vector3():
     def __init__(self, x: float, y: float, z: float):
@@ -47,6 +47,12 @@ class Point():
     def to_vector3(self):
         return Vector3(self.x, self.y, self.z)
 
+    def paint(self, painter, points_display_table):
+        width = max(5, 2*self.radius)
+        painter.drawEllipse(points_display_table[self][0] - width / 2,
+                            points_display_table[self][1] - width / 2,
+                            width, width)
+
 
 class Line():
     def __init__(self, start: Point, end: Point, radius = 5):
@@ -54,14 +60,23 @@ class Line():
         self.end = end
         self.radius = radius
 
+    def paint(self, painter, points_display_table):
+        painter.pen().setWidth(max(5, 2*self.radius))
+        painter.drawLine(
+            *(points_display_table[self.start]),
+            *(points_display_table[self.end]))
+
 
 class Polygon():
-    def __init__(self, first_line: Line, second_line: Line, normal: Vector3,
+    def __init__(self, points, normal: Vector3,
                 radius = 5):
-        self.first_line = first_line
-        self.second_line = second_line
+        self.points = [point for point in points]
         self.radius = radius
         self.normal = normal
+
+    def paint(self, painter, points_display_table):
+        painter.pen().setWidth(max(5, 2*self.radius))
+        painter.drawConvexPolygon(*[QtCore.QPointF(*(points_display_table[point])) for point in self.points])
 
 
 class Matrix():

@@ -18,10 +18,8 @@ class Model():
     def add_line(self, point1, point2):
         self.objects.append(Line(point1, point2))
 
-    def add_polygon(self, point1, point2, point3, point4): #for variable count of points
-        self.objects.append(Polygon(Line(point1, point2, 5),
-                                  Line(point3, point4, 5),
-                                  Vector3(1, 0, 0)))
+    def add_polygon(self, points): #for variable count of points
+        self.objects.append(Polygon(points, Vector3(1, 0, 0)))
 
     def get_display_vector_on_plate_of_display(self, vector: Vector3) -> tuple:
         displayed_coordinates = (self.matrix_of_display.transpose() *
