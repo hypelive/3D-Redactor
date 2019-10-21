@@ -12,7 +12,7 @@ class Vector3():
                            self.y + other.y,
                            self.z + other.z)
 
-    def __mul__(self, other):  # vectornoe multiply
+    def __mul__(self, other):
         if isinstance(other, Vector3):
             return Vector3(self.y*other.z - self.z*other.y,
                            self.z*other.x - self.x*other.z,
@@ -29,12 +29,6 @@ class Vector3():
 
     def to_tuple(self):
         return(self.x, self.y, self.z)
-
-
-class Vector2():
-    def __init__(self, x: float, y: float):
-        self.x = x
-        self.y = y
 
 
 class Point():
@@ -55,14 +49,15 @@ class Point():
 
 
 class Line():
-    def __init__(self, start: Point, end: Point, radius: float):
+    def __init__(self, start: Point, end: Point, radius = 5):
         self.start = start
         self.end = end
         self.radius = radius
 
 
-class Plate():
-    def __init__(self, first_line: Line, second_line: Line, radius: float, normal: Vector3):
+class Polygon():
+    def __init__(self, first_line: Line, second_line: Line, normal: Vector3,
+                radius = 5):
         self.first_line = first_line
         self.second_line = second_line
         self.radius = radius
@@ -81,32 +76,6 @@ class Matrix():
 
     def __getitem__(self, key):
         return self.table[key]
-
-    def delete_string(self, key):  # do we need it?
-        self.table.remove(self.table[key])
-
-    def solve_matrix_by_gauss(self):
-        n = 0
-        while(n < len(self.table)):
-            while self.zero_string in self.table:
-                self.table.remove(self.zero_string)
-            if (n >= len(self.table)):
-                break  # delete zero strings
-            temp = self.table[n][n]
-            if temp == 0:
-                n += 1
-                continue
-            for i in range(self.column):
-                self.table[n][i] = self.table[n][i] / \
-                    temp  # first elem is 1 then
-            for i in range(len(self.table)):
-                if i != n:
-                    temp = self.table[i][n]
-                    for j in range(n, self.column):
-                        self.table[i][j] = self.table[i][j] - \
-                            temp*self.table[n][j]
-            n += 1
-        return tuple([string[self.column - 1] for string in self.table])
 
     def __mul__(self, other):
         if isinstance(other, Matrix):
