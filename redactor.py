@@ -22,6 +22,7 @@ class RedactorWindow(QtWidgets.QMainWindow):
             QtCore.Qt.Key_E: "drag plate",
             QtCore.Qt.Key_L: "line",
             QtCore.Qt.Key_P: "plate"}
+        self.display_axsiss = False
         rotate_angle = math.pi / 90
         self.rotate = {
             QtCore.Qt.Key_D: Matrix(3, 3, math.cos(rotate_angle),
@@ -96,7 +97,8 @@ class RedactorWindow(QtWidgets.QMainWindow):
         painter.setBrush(QtGui.QBrush(QtCore.Qt.red))
         painter.fillRect(0, 0, 1200, 625, QtGui.QGradient.Preset(12))
         #need system of coordinates display
-        self.draw_coordinates_system(painter)
+        if self.display_axsiss:
+            self.draw_coordinates_system(painter)
         for obj in self.model.objects:
             if isinstance(obj, Point):
                 self.paint_point(obj, painter)
@@ -113,17 +115,17 @@ class RedactorWindow(QtWidgets.QMainWindow):
         self.paint_point(self.model.origin, painter)
         
         painter.setPen(QtGui.QPen(QtCore.Qt.green, 3, QtCore.Qt.SolidLine))
-        temp_point = Point(self.model.basis[0].x * 50, self.model.basis[0].y * 50, self.model.basis[0].z * 50, 5)
+        temp_point = Point(self.model.basis[0].x * 500, self.model.basis[0].y * 500, self.model.basis[0].z * 500, 5)
         self.paint_point(temp_point, painter)
         self.paint_line(Line(self.model.origin, temp_point, 5), painter)
         
         painter.setPen(QtGui.QPen(QtCore.Qt.black, 3, QtCore.Qt.SolidLine))
-        temp_point = Point(self.model.basis[1].x * 50, self.model.basis[1].y * 50, self.model.basis[1].z * 50, 5)
+        temp_point = Point(self.model.basis[1].x * 500, self.model.basis[1].y * 500, self.model.basis[1].z * 500, 5)
         self.paint_point(temp_point, painter)
         self.paint_line(Line(self.model.origin, temp_point, 5), painter)
         
         painter.setPen(QtGui.QPen(QtCore.Qt.yellow, 3, QtCore.Qt.SolidLine))
-        temp_point = Point(self.model.basis[2].x * 50, self.model.basis[2].y * 50, self.model.basis[2].z * 50, 5)
+        temp_point = Point(self.model.basis[2].x * 500, self.model.basis[2].y * 500, self.model.basis[2].z * 500, 5)
         self.paint_point(temp_point, painter)
         self.paint_line(Line(self.model.origin, temp_point, 5), painter)
         
@@ -148,7 +150,6 @@ class RedactorWindow(QtWidgets.QMainWindow):
                                     QtCore.QPointF(*(self.points_display_table[plate.first_line.end])),
                                     QtCore.QPointF(*(self.points_display_table[plate.second_line.start])),
                                     QtCore.QPointF(*(self.points_display_table[plate.second_line.end])))
-        # painter.draw
 
     def mousePressEvent(self, event):
         if not self.model:
@@ -202,7 +203,7 @@ class RedactorWindow(QtWidgets.QMainWindow):
         if not self.model:
             return
         if event.key() == QtCore.Qt.Key_Space:
-            self.add_point()
+            self.display_axsiss = not self.display_axsiss
         elif event.key() in self.modes:
             self.mode = self.modes[event.key()]
             self.point_buffer = []
