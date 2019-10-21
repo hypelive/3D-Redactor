@@ -12,7 +12,7 @@ class Model():
         self.update_matrix_of_display(None)
 
     def add_point(self):
-        self.objects.append(Point(0, 0, 0, 10))
+        self.objects.append(Point(0, 0, 0))
 
     def add_line(self, point1, point2):
         self.objects.append(Line(point1, point2, 5))
@@ -22,12 +22,12 @@ class Model():
                                   Line(point3, point4, 5), 5,
                                   Vector3(1, 0, 0)))
 
-    def get_display_vector_on_plate_of_display(self, vector):
+    def get_display_vector_on_plate_of_display(self, vector: Vector3) -> tuple:
         displayed_coordinates = (self.matrix_of_display.transpose() * vector).to_tuple()
         return displayed_coordinates[:2]
         
 
-    def update_matrix_of_display(self, ort_matrix: Matrix):
+    def update_matrix_of_display(self, ort_matrix: Matrix) -> None:
         if not ort_matrix:
             a = self.display_plate_basis[0]
             b = self.display_plate_basis[1]

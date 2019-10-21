@@ -43,6 +43,12 @@ class RedactorTests(unittest.TestCase):
         self.assertTrue(math.fabs(model.matrix_of_display[2][0] - 1) < 1e-15)
         self.assertTrue(math.fabs(model.matrix_of_display[2][1]) < 1e-15)
         self.assertTrue(math.fabs(model.matrix_of_display[2][2]) < 1e-15)
+
+    def test_display_model(self):
+        model = Model()
+        self.assertEqual(model.get_display_vector_on_plate_of_display(Vector3(1, 0, 0)), (0, 0))
+        self.assertEqual(model.get_display_vector_on_plate_of_display(Vector3(0, 1, 0)), (1, 0))
+        self.assertEqual(model.get_display_vector_on_plate_of_display(Vector3(0, 0, 1)), (0, 1))
         
         
         

@@ -11,7 +11,7 @@ class RedactorWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
         self.model = None
-        self.split_coordinates = (600, 150)
+        self.split_coordinates = [600, 315]
         self.points_display_table = {}
         self.point_buffer = []
         self.last_x = None
@@ -130,8 +130,7 @@ class RedactorWindow(QtWidgets.QMainWindow):
         painter.setPen(QtGui.QPen(QtCore.Qt.red, 5, QtCore.Qt.SolidLine))
 
     def paint_point(self, point, painter):
-        display_coord = (self.model.matrix_of_display *
-                         Matrix(3, 1, point.x, point.y, point.z)).to_tuple()
+        display_coord = self.model.get_display_vector_on_plate_of_display(point.to_vector3())
         width = max(5, 2*point.radius)
         self.points_display_table[point] = (display_coord[0] + self.model.display_plate_origin.x + self.split_coordinates[0],
                                             display_coord[1] + self.model.display_plate_origin.y + self.split_coordinates[1])
@@ -160,7 +159,7 @@ class RedactorWindow(QtWidgets.QMainWindow):
                 self.point_buffer.append(self.object_to_interact)
             if len(self.point_buffer) == 2:
                 self.model.add_line(self.point_buffer[0], self.point_buffer[1])
-                self.mode = "drag plate"
+                self.mode = "drag object"
                 self.point_buffer = []
         if self.mode == "plate":
             self.update_object_to_interact(event)
@@ -169,7 +168,7 @@ class RedactorWindow(QtWidgets.QMainWindow):
             if len(self.point_buffer) == 4:
                 self.model.add_plate(self.point_buffer[0], self.point_buffer[1],
                                      self.point_buffer[2], self.point_buffer[3])
-                self.mode = "drag plate"
+                self.mode = "drag object"
                 self.point_buffer = []
         self.object_to_interact = None
         self.last_x = event.x()  # 0
@@ -187,14 +186,13 @@ class RedactorWindow(QtWidgets.QMainWindow):
                 if self.object_to_interact:
                     self.object_to_interact + (
                         self.model.display_plate_basis[0]*(event.x() - self.last_x) +
-                        self.model.display_plate_basis[1]*(self.last_y - event.y()))
+                        self.model.display_plate_basis[1]*(event.y() - self.last_y))
             else:
                 self.object_to_interact = None
         elif self.mode == "drag plate":
             if time.time() - self.last_time_clicked < 0.15:
-                self.model.display_plate_origin + (
-                    self.model.display_plate_basis[0]*(event.x() - self.last_x) +
-                    self.model.display_plate_basis[1]*(self.last_y - event.y()))
+                self.split_coordinates[0] += (event.x() - self.last_x) 
+                self.split_coordinates[1] += (event.y() - self.last_y)
         self.last_x = event.x()  # 0
         self.last_y = event.y()  # 0
         self.last_time_clicked = time.time()
@@ -203,7 +201,9 @@ class RedactorWindow(QtWidgets.QMainWindow):
     def keyPressEvent(self, event: QtGui.QKeyEvent):
         if not self.model:
             return
-        if event.key() in self.modes:
+        if event.key() == QtCore.Qt.Key_Space:
+            self.add_point()
+        elif event.key() in self.modes:
             self.mode = self.modes[event.key()]
             self.point_buffer = []
         elif event.key() in self.rotate:
@@ -212,14 +212,15 @@ class RedactorWindow(QtWidgets.QMainWindow):
 
     def update_object_to_interact(self, event):
         self.object_to_interact = None
-        for obj in self.points_display_table:
-            distance = math.sqrt((event.x() - self.points_display_table[obj][0])*
-                                 (event.x() - self.points_display_table[obj][0]) +
-                                 (event.y() - self.points_display_table[obj][1])*
-                                 (event.y() - self.points_display_table[obj][1]))
-            if obj.radius > distance:
-                self.object_to_interact = obj
-                break
+        for obj in self.model.objects: #check basis points too((
+            if obj in self.points_display_table:
+                distance = math.sqrt((event.x() - self.points_display_table[obj][0])*
+                                    (event.x() - self.points_display_table[obj][0]) +
+                                    (event.y() - self.points_display_table[obj][1])*
+                                    (event.y() - self.points_display_table[obj][1]))
+                if obj.radius > distance:
+                    self.object_to_interact = obj
+                    break
 
     def init_new_model(self):
         self.model = model.Model()

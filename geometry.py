@@ -38,7 +38,7 @@ class Vector2():
 
 
 class Point():
-    def __init__(self, x: float, y: float, z: float, radius = 0):
+    def __init__(self, x: float, y: float, z: float, radius = 10):
         self.x = x
         self.y = y
         self.z = z
@@ -49,6 +49,9 @@ class Point():
             self.x += other.x
             self.y += other.y
             self.z += other.z
+    
+    def to_vector3(self):
+        return Vector3(self.x, self.y, self.z)
 
 
 class Line():
