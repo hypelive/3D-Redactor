@@ -1,8 +1,6 @@
 import sys
-import time
-from PyQt5 import QtGui, QtWidgets, QtCore  #here is matrix
+from PyQt5 import QtWidgets
 import redactor
-from geometry import Matrix
 
 
 def main():

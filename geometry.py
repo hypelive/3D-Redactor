@@ -1,6 +1,6 @@
 from PyQt5 import QtCore
 
-class Vector3():
+class Vector3:
     def __init__(self, x: float, y: float, z: float):
         self.x = x
         self.y = y
@@ -31,7 +31,7 @@ class Vector3():
         return(self.x, self.y, self.z)
 
 
-class Point():
+class Point:
     def __init__(self, x: float, y: float, z: float, radius = 10):
         self.x = x
         self.y = y
@@ -54,7 +54,7 @@ class Point():
                             width, width)
 
 
-class Line():
+class Line:
     def __init__(self, start: Point, end: Point, radius = 5):
         self.start = start
         self.end = end
@@ -67,7 +67,7 @@ class Line():
             *(points_display_table[self.end]))
 
 
-class Polygon():
+class Polygon:
     def __init__(self, points, normal: Vector3,
                 radius = 5):
         self.points = [point for point in points]
@@ -79,7 +79,7 @@ class Polygon():
         painter.drawConvexPolygon(*[QtCore.QPointF(*(points_display_table[point])) for point in self.points])
 
 
-class Matrix():
+class Matrix:
     def __init__(self, string: int, column: int, *args: float):
         self.table = []
         self.zero_string = [0 for _ in range(column)]

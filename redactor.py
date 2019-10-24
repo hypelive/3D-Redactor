@@ -1,6 +1,6 @@
 import sys
 import time
-from PyQt5 import QtGui, QtWidgets, QtCore, QtPrintSupport
+from PyQt5 import QtGui, QtWidgets, QtCore
 import model
 from geometry import Matrix, Vector3, Point, Line, Polygon
 import math
@@ -104,8 +104,8 @@ class RedactorWindow(QtWidgets.QMainWindow):
 
     def update_display(self):
         painter = QtGui.QPainter(self.label.pixmap())
-        painter.setPen(QtGui.QPen(QtCore.Qt.red, 5, QtCore.Qt.SolidLine))
-        painter.setBrush(QtGui.QBrush(QtCore.Qt.red))
+        painter.setPen(QtGui.QPen(QtGui.QColor(255, 102, 0), 5, QtCore.Qt.SolidLine))
+        painter.setBrush(QtGui.QBrush(QtGui.QColor(255, 102, 0)))
         painter.fillRect(0, 0, 1200, 625, QtGui.QGradient.Preset(12))
 
         if self.display_axiss:
@@ -124,35 +124,43 @@ class RedactorWindow(QtWidgets.QMainWindow):
         self.update()
 
     def draw_coordinates_system(self, painter : QtGui.QPainter): #can vinesti v method
-        painter.setPen(QtGui.QPen(QtCore.Qt.blue, self.axiss_width,
+        painter.setPen(QtGui.QPen(QtCore.Qt.black, self.axiss_width,
                                  QtCore.Qt.SolidLine))
-        self.paint_point(self.model.origin, painter)
+        width = 5
+        display_origin = self.model.get_display_vector_on_plate_of_display(self.model.origin.to_vector3())
+        display_origin = (display_origin[0] + self.split_coordinates[0], display_origin[1] + self.split_coordinates[1])
+        painter.drawEllipse(display_origin[0] - width / 2,
+                            display_origin[1] - width / 2,
+                            width, width)
         
         painter.setPen(QtGui.QPen(QtCore.Qt.green, self.axiss_width,
                                  QtCore.Qt.SolidLine))
-        temp_point = Point(self.model.basis[0].x * self.axiss_size,
-                          self.model.basis[0].y * self.axiss_size,
-                          self.model.basis[0].z * self.axiss_size, 5)
-        self.paint_point(temp_point, painter)
-        self.paint_line(Line(self.model.origin, temp_point, 5), painter)
+        self.draw_axis(painter, self.model.basis[0], display_origin)
         
-        painter.setPen(QtGui.QPen(QtCore.Qt.black, self.axiss_width,
+        painter.setPen(QtGui.QPen(QtCore.Qt.blue, self.axiss_width,
                                  QtCore.Qt.SolidLine))
-        temp_point = Point(self.model.basis[1].x * self.axiss_size,
-                          self.model.basis[1].y * self.axiss_size,
-                          self.model.basis[1].z * self.axiss_size, 5)
-        self.paint_point(temp_point, painter)
-        self.paint_line(Line(self.model.origin, temp_point, 5), painter)
+        self.draw_axis(painter, self.model.basis[1], display_origin)
         
-        painter.setPen(QtGui.QPen(QtCore.Qt.yellow, self.axiss_width,
+        painter.setPen(QtGui.QPen(QtCore.Qt.red, self.axiss_width,
                                  QtCore.Qt.SolidLine))
-        temp_point = Point(self.model.basis[2].x * self.axiss_size,
-                          self.model.basis[2].y * self.axiss_size,
-                          self.model.basis[2].z * self.axiss_size, 5)
-        self.paint_point(temp_point, painter)
-        self.paint_line(Line(self.model.origin, temp_point, 5), painter)
+        self.draw_axis(painter, self.model.basis[2], display_origin)
         
-        painter.setPen(QtGui.QPen(QtCore.Qt.red, 5, QtCore.Qt.SolidLine))
+        painter.setPen(QtGui.QPen(QtGui.QColor(255, 102, 0), 5, QtCore.Qt.SolidLine))
+
+    def draw_axis(self, painter, basis_vector, display_origin):
+        width = 5
+        temp_point = Point(basis_vector.x * self.axiss_size,
+                          basis_vector.y * self.axiss_size,
+                          basis_vector.z * self.axiss_size)
+        display_coord = self.model.get_display_vector_on_plate_of_display(temp_point.to_vector3())
+        display_coord = (display_coord[0] + self.split_coordinates[0],
+                        display_coord[1] + self.split_coordinates[1])
+        painter.drawEllipse(display_coord[0] - width / 2,
+                            display_coord[1] - width / 2,
+                            width, width)
+        painter.drawLine(      #from start to end
+            *(display_origin),
+            *(display_coord))
 
     def mousePressEvent(self, event):
         if not self.model:
@@ -230,10 +238,12 @@ class RedactorWindow(QtWidgets.QMainWindow):
         self.model = model.Model()
         self.update_display()
 
-    def open_model(self):
+    def open_model(self):#show the window where we can write filename
+        #self.model.open(filename)
         pass
 
-    def save_model(self):
+    def save_model(self):#show the window where we can write filename
+        #self.model.save(filename)
         pass
 
     def add_point(self):

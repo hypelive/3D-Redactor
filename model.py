@@ -1,7 +1,7 @@
 from geometry import Point, Line, Polygon, Vector3, Matrix
 
 
-class Model():
+class Model:
     def __init__(self):
         self.basis = (Vector3(1, 0, 0), Vector3(0, 1, 0), Vector3(0, 0, 1))
         self.origin = Point(0, 0, 0, 0)
@@ -42,3 +42,9 @@ class Model():
             self.display_plate_basis[2] = Vector3(*((ort_matrix *
                             self.display_plate_basis[2]).to_tuple()))
             self.update_matrix_of_display(None)
+    
+    def save(self, filename):
+        pass
+
+    def open(self, filename):
+        pass
