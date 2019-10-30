@@ -102,6 +102,10 @@ class RedactorWindow(QtWidgets.QMainWindow):
         but.setGeometry(1150, 440, 40, 30)
         but.clicked.connect(self.add_polygon)
 
+        but = QtWidgets.QPushButton('Screenshot', self)
+        but.setGeometry(15, 600, 65, 20)
+        but.clicked.connect(self.screenshot)
+
     def update_display(self):
         painter = QtGui.QPainter(self.label.pixmap())
         painter.setPen(QtGui.QPen(QtGui.QColor(255, 102, 0), 5, QtCore.Qt.SolidLine))
@@ -239,12 +243,34 @@ class RedactorWindow(QtWidgets.QMainWindow):
         self.update_display()
 
     def open_model(self):#show the window where we can write filename
-        #self.model.open(filename)
-        pass
+        filename, ok = QtWidgets.QInputDialog.getText(self, 'Filename',
+            'Enter the filename for open:')
+        if not ok:
+            return
+        self.model = model.Model()
+        try:
+            self.model.open(filename)
+        except FileNotFoundError:
+            pass #something will be there late
+        self.update_display()
 
     def save_model(self):#show the window where we can write filename
-        #self.model.save(filename)
-        pass
+        if not self.model:
+            return
+        filename, ok = QtWidgets.QInputDialog.getText(self, 'Filename',
+            'Enter the filename for save:')
+        if not ok:
+            return
+        self.model.save(str(filename))
+        self.update_display()
+    
+    def screenshot(self, filename):
+        filename, ok = QtWidgets.QInputDialog.getText(self, 'Filename',
+            'Enter the filename to save screen(without extention):')
+        if not ok:
+            return
+        screen = QtWidgets.QApplication.primaryScreen()
+        screen.grabWindow(self.winId()).save(filename + '.png', 'png')
 
     def add_point(self):
         if self.model:

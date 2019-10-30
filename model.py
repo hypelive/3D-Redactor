@@ -43,8 +43,48 @@ class Model:
                             self.display_plate_basis[2]).to_tuple()))
             self.update_matrix_of_display(None)
     
-    def save(self, filename):
-        pass
+    def save(self, filename: str):
+        with open(filename, 'w', encoding='utf8') as file:
+            file.write(self.to_string())
 
-    def open(self, filename):
-        pass
+    def open(self, filename: str):
+        with open(filename, 'r', encoding='utf8') as file:
+
+            line = file.readline()
+            objects = line.split(' ')
+            self.basis = (Vector3.from_string(objects[0]),
+                         Vector3.from_string(objects[1]),
+                         Vector3.from_string(objects[2]))
+
+            line = file.readline()
+            self.origin = Point.from_string(line)
+
+            line = file.readline()
+            objects = line.split(' ')
+            self.display_plate_basis = [Vector3.from_string(objects[0]),
+                                       Vector3.from_string(objects[1]),
+                                       Vector3.from_string(objects[2])]
+
+            for line in file:
+                if not line:
+                    return
+                obj = None
+                if line[0:2] == 'pt':
+                    obj = Point.from_string(line)
+                elif line[0:2] == 'ln':
+                    obj = Line.from_string(line, self.objects)
+                elif line[0:2] == 'pg':
+                    obj = Polygon.from_string(line, self.objects)
+                self.objects.append(obj)
+            
+            self.update_matrix_of_display(None)
+
+    def to_string(self):
+        str_representation = f'''{self.basis[0].to_string()} {self.basis[1].to_string()} {self.basis[2].to_string()}
+{self.origin.to_string()}
+{self.display_plate_basis[0].to_string()} {self.display_plate_basis[1].to_string()} {self.display_plate_basis[2].to_string()}
+'''
+        for obj in self.objects:
+            str_representation += f'{obj.to_string()}\n'
+        return str_representation
+

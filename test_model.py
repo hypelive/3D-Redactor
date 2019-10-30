@@ -1,7 +1,6 @@
 import unittest
 from model import Model
 from geometry import Vector3, Matrix
-from redactor import RedactorWindow
 import math
 
 class RedactorTests(unittest.TestCase):
