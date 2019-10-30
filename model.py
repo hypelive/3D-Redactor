@@ -1,13 +1,14 @@
-from geometry import Point, Line, Polygon, Vector3, Matrix
+from geometry import Vector3, Matrix
+from objects import Point, Line, Polygon, Sphere, Cylinder
 
 
 class Model:
     def __init__(self):
         self.basis = (Vector3(1, 0, 0), Vector3(0, 1, 0), Vector3(0, 0, 1))
-        self.origin = Point(0, 0, 0, 0)
+        self.origin = Point(0, 0, 0)
         self.display_plate_basis = [Vector3(0, 1, 0), Vector3(0, 0, 1),
                                     Vector3(-1, 0, 0)]
-        #self.display_plate_origin = Point(0, 0, -10, 0)
+        #self.display_plate_origin = Point(0, 0, -10)
         self.objects = []
         self.matrix_of_display = None
         self.update_display_matrix(None)
@@ -19,7 +20,7 @@ class Model:
         self.objects.append(Line(point1, point2))
 
     def add_polygon(self, points):  # for variable count of points
-        self.objects.append(Polygon(points, Vector3(1, 0, 0)))
+        self.objects.append(Polygon(points))
 
     def display_vector(self, vector: Vector3) -> tuple:
         displayed_coordinates = (self.matrix_of_display.transpose() *
@@ -35,11 +36,11 @@ class Model:
                 3, 3, a.x, b.x, c.x, a.y, b.y, c.y, a.z, b.z, c.z)
         else:
             self.display_plate_basis[0] = Vector3(*((ort_matrix *
-                                self.display_plate_basis[0]).to_tuple()))
+                                                     self.display_plate_basis[0]).to_tuple()))
             self.display_plate_basis[1] = Vector3(*((ort_matrix *
-                                self.display_plate_basis[1]).to_tuple()))
+                                                     self.display_plate_basis[1]).to_tuple()))
             self.display_plate_basis[2] = Vector3(*((ort_matrix *
-                                self.display_plate_basis[2]).to_tuple()))
+                                                     self.display_plate_basis[2]).to_tuple()))
             self.update_display_matrix(None)
 
     def save(self, filename: str):
@@ -74,11 +75,15 @@ class Model:
                     obj = Line.from_string(line, self.objects)
                 elif line[0:2] == 'pg':
                     obj = Polygon.from_string(line, self.objects)
+                elif line[0:2] == 'sp':
+                    obj = Sphere.from_string(line, self.objects)
+                elif line[0:2] == 'cl':
+                    obj = Cylinder.from_string(line, self.objects)
                 self.objects.append(obj)
 
             self.update_display_matrix(None)
 
-    def to_string(self):#стиль стилем, конечно, но разве так не лучше?
+    def to_string(self):  # стиль стилем, конечно, но разве так не лучше?
         str_representation = f'''{self.basis[0].to_string()} {self.basis[1].to_string()} {self.basis[2].to_string()}
 {self.origin.to_string()}
 {self.display_plate_basis[0].to_string()} {self.display_plate_basis[1].to_string()} {self.display_plate_basis[2].to_string()}

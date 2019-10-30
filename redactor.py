@@ -2,7 +2,8 @@ import sys
 import time
 from PyQt5 import QtGui, QtWidgets, QtCore
 import model
-from geometry import Matrix, Vector3, Point, Line, Polygon
+from geometry import Matrix, Vector3
+from objects import Point, Line, Polygon
 import math
 
 
@@ -239,7 +240,7 @@ class RedactorWindow(QtWidgets.QMainWindow):
         for obj in self.model.objects:
             if obj in self.points_display_table:
                 distance = self.get_distance_to_point(event, obj)
-                if obj.radius > distance:
+                if obj.WIDTH > distance:
                     self.object_to_interact = obj
                     break
 
