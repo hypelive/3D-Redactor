@@ -14,7 +14,7 @@ class RedactorWindow(QtWidgets.QMainWindow):
 
         self.split_coordinates = [600, 315]
         self.axiss_size = 250
-        self.axiss_width = 3 
+        self.axiss_width = 3
         self.points_display_table = {}
         self.point_buffer = []
 
@@ -108,7 +108,8 @@ class RedactorWindow(QtWidgets.QMainWindow):
 
     def update_display(self):
         painter = QtGui.QPainter(self.label.pixmap())
-        painter.setPen(QtGui.QPen(QtGui.QColor(255, 102, 0), 5, QtCore.Qt.SolidLine))
+        painter.setPen(QtGui.QPen(QtGui.QColor(
+            255, 102, 0), 5, QtCore.Qt.SolidLine))
         painter.setBrush(QtGui.QBrush(QtGui.QColor(255, 102, 0)))
         painter.fillRect(0, 0, 1200, 625, QtGui.QGradient.Preset(12))
 
@@ -117,52 +118,58 @@ class RedactorWindow(QtWidgets.QMainWindow):
 
         for obj in self.model.objects:
             if isinstance(obj, Point):
-                display_coord = self.model.get_display_vector_on_plate_of_display(obj.to_vector3())
+                display_coord = self.model.display_vector(
+                    obj.to_vector3())
                 self.points_display_table[obj] = (display_coord[0] +
-                                            self.split_coordinates[0],
-                                            display_coord[1] +
-                                            self.split_coordinates[1])
+                                                  self.split_coordinates[0],
+                                                  display_coord[1] +
+                                                  self.split_coordinates[1])
             obj.paint(painter, self.points_display_table)
-        painter.drawText(15, 15, f"selected mode: {self.mode}") #can we do mode description?... hmmm
+        # can we do mode description?... hmmm
+        painter.drawText(15, 15, f"selected mode: {self.mode}")
         painter.end()
         self.update()
 
-    def draw_coordinates_system(self, painter : QtGui.QPainter): #can vinesti v method
+    def draw_coordinates_system(self, painter: QtGui.QPainter):
         painter.setPen(QtGui.QPen(QtCore.Qt.black, self.axiss_width,
-                                 QtCore.Qt.SolidLine))
+                                  QtCore.Qt.SolidLine))
         width = 5
-        display_origin = self.model.get_display_vector_on_plate_of_display(self.model.origin.to_vector3())
-        display_origin = (display_origin[0] + self.split_coordinates[0], display_origin[1] + self.split_coordinates[1])
+        display_origin = self.model.display_vector(
+            self.model.origin.to_vector3())
+        display_origin = (display_origin[0] + self.split_coordinates[0],
+                          display_origin[1] + self.split_coordinates[1])
         painter.drawEllipse(display_origin[0] - width / 2,
                             display_origin[1] - width / 2,
                             width, width)
-        
+
         painter.setPen(QtGui.QPen(QtCore.Qt.green, self.axiss_width,
-                                 QtCore.Qt.SolidLine))
+                                  QtCore.Qt.SolidLine))
         self.draw_axis(painter, self.model.basis[0], display_origin)
-        
+
         painter.setPen(QtGui.QPen(QtCore.Qt.blue, self.axiss_width,
-                                 QtCore.Qt.SolidLine))
+                                  QtCore.Qt.SolidLine))
         self.draw_axis(painter, self.model.basis[1], display_origin)
-        
+
         painter.setPen(QtGui.QPen(QtCore.Qt.red, self.axiss_width,
-                                 QtCore.Qt.SolidLine))
+                                  QtCore.Qt.SolidLine))
         self.draw_axis(painter, self.model.basis[2], display_origin)
-        
-        painter.setPen(QtGui.QPen(QtGui.QColor(255, 102, 0), 5, QtCore.Qt.SolidLine))
+
+        painter.setPen(QtGui.QPen(QtGui.QColor(
+            255, 102, 0), 5, QtCore.Qt.SolidLine))
 
     def draw_axis(self, painter, basis_vector, display_origin):
         width = 5
         temp_point = Point(basis_vector.x * self.axiss_size,
-                          basis_vector.y * self.axiss_size,
-                          basis_vector.z * self.axiss_size)
-        display_coord = self.model.get_display_vector_on_plate_of_display(temp_point.to_vector3())
+                           basis_vector.y * self.axiss_size,
+                           basis_vector.z * self.axiss_size)
+        display_coord = self.model.display_vector(
+            temp_point.to_vector3())
         display_coord = (display_coord[0] + self.split_coordinates[0],
-                        display_coord[1] + self.split_coordinates[1])
+                         display_coord[1] + self.split_coordinates[1])
         painter.drawEllipse(display_coord[0] - width / 2,
                             display_coord[1] - width / 2,
                             width, width)
-        painter.drawLine(      #from start to end
+        painter.drawLine(  # from start to end
             *(display_origin),
             *(display_coord))
 
@@ -197,14 +204,14 @@ class RedactorWindow(QtWidgets.QMainWindow):
                     self.update_object_to_interact(event)
                 if self.object_to_interact:
                     self.object_to_interact + (
-                        self.model.display_plate_basis[0]*
+                        self.model.display_plate_basis[0] *
                         (event.x() - self.last_x) +
                         self.model.display_plate_basis[1]
-                        *(event.y() - self.last_y))
+                        * (event.y() - self.last_y))
             else:
                 self.object_to_interact = None
         elif self.mode == "drag plate":
-            self.split_coordinates[0] += (event.x() - self.last_x) 
+            self.split_coordinates[0] += (event.x() - self.last_x)
             self.split_coordinates[1] += (event.y() - self.last_y)
         self.last_x = event.x()
         self.last_y = event.y()
@@ -216,57 +223,61 @@ class RedactorWindow(QtWidgets.QMainWindow):
             return
         if event.key() == QtCore.Qt.Key_CapsLock:
             self.display_axiss = not self.display_axiss
-        elif event.key() in self.modes:    #if we change when polygon - polygon drawn
-            if self.mode == "polygon" and len(self.point_buffer) > 2: 
+        elif event.key() in self.modes:  # if we change when polygon - end pol
+            if self.mode == "polygon" and len(self.point_buffer) > 2:
                 self.model.add_polygon(self.point_buffer)
                 self.point_buffer = []
             self.mode = self.modes[event.key()]
             self.point_buffer = []
         elif event.key() in self.rotate:
-            self.model.update_matrix_of_display(self.rotate[event.key()])
+            self.model.update_display_matrix(self.rotate[event.key()])
         self.update_display()
 
-    def update_object_to_interact(self, event): #do that we can interact with poly or line ?... hmmm
+    # can we interact with poly or line ?... hmmm
+    def update_object_to_interact(self, event):
         self.object_to_interact = None
         for obj in self.model.objects:
             if obj in self.points_display_table:
-                distance = math.sqrt((event.x() - self.points_display_table[obj][0])*
-                                    (event.x() - self.points_display_table[obj][0]) +
-                                    (event.y() - self.points_display_table[obj][1])*
-                                    (event.y() - self.points_display_table[obj][1]))
+                distance = self.get_distance_to_point(event, obj)
                 if obj.radius > distance:
                     self.object_to_interact = obj
                     break
+
+    def get_distance_to_point(self, event, point):
+        return math.sqrt((event.x() - self.points_display_table[point][0]) *
+                         (event.x() - self.points_display_table[point][0]) +
+                         (event.y() - self.points_display_table[point][1]) *
+                         (event.y() - self.points_display_table[point][1]))
 
     def init_new_model(self):
         self.model = model.Model()
         self.update_display()
 
-    def open_model(self):#show the window where we can write filename
+    def open_model(self):  # show the window where we can write filename
         filename, ok = QtWidgets.QInputDialog.getText(self, 'Filename',
-            'Enter the filename for open:')
+                                                      'Enter the filename for open:')
         if not ok:
             return
         self.model = model.Model()
         try:
             self.model.open(filename)
         except FileNotFoundError:
-            pass #something will be there late
+            pass  # something will be there late
         self.update_display()
 
-    def save_model(self):#show the window where we can write filename
+    def save_model(self):  # show the window where we can write filename
         if not self.model:
             return
         filename, ok = QtWidgets.QInputDialog.getText(self, 'Filename',
-            'Enter the filename for save:')
+                                                      'Enter the filename for save:')
         if not ok:
             return
         self.model.save(str(filename))
         self.update_display()
-    
+
     def screenshot(self, filename):
         filename, ok = QtWidgets.QInputDialog.getText(self, 'Filename',
-            'Enter the filename to save screen(without extention):')
+                                                      'Enter the filename to save screen(without extention):')
         if not ok:
             return
         screen = QtWidgets.QApplication.primaryScreen()

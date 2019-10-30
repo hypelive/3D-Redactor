@@ -1,5 +1,6 @@
 from PyQt5 import QtCore
 
+
 class Vector3:
     def __init__(self, x: float, y: float, z: float):
         self.x = x
@@ -40,7 +41,7 @@ class Vector3:
 
 
 class Point:
-    def __init__(self, x: float, y: float, z: float, radius = 10):
+    def __init__(self, x: float, y: float, z: float, radius=10):
         self.x = x
         self.y = y
         self.z = z
@@ -51,7 +52,7 @@ class Point:
             self.x += other.x
             self.y += other.y
             self.z += other.z
-    
+
     def to_vector3(self):
         return Vector3(self.x, self.y, self.z)
 
@@ -60,18 +61,19 @@ class Point:
         painter.drawEllipse(points_display_table[self][0] - width / 2,
                             points_display_table[self][1] - width / 2,
                             width, width)
-    
+
     def to_string(self):
         return f'pt,{float(self.x)},{float(self.y)},{float(self.z)},{int(self.radius)}'
-    
+
     @staticmethod
     def from_string(str_representation):
         params = str_representation.split(',')
-        return Point(float(params[1]), float(params[2]), float(params[3]), int(params[4][:-1]))
+        return Point(float(params[1]), float(params[2]),
+                     float(params[3]), int(params[4][:-1]))
 
 
 class Line:
-    def __init__(self, start: Point, end: Point, radius = 5):
+    def __init__(self, start: Point, end: Point, radius=5):
         self.start = start
         self.end = end
         self.radius = radius
@@ -81,31 +83,33 @@ class Line:
         painter.drawLine(
             *(points_display_table[self.start]),
             *(points_display_table[self.end]))
-    
+
     def to_string(self):
         return f'ln?|{self.start.to_string()}||{self.end.to_string()}|?{self.radius}'
-    
+
     @staticmethod
     def from_string(str_representation: str, objects):
         params = str_representation.split('?')
         str_points = str_representation.split('|')
         points = []
         for obj in objects:
-            if obj.to_string() == str_points[1] or obj.to_string() == str_points[3]:
+            if (obj.to_string() == str_points[1] or
+                    obj.to_string() == str_points[3]):
                 points.append(obj)
         return Line(points[0], points[1], int(params[2][:-1]))
 
 
 class Polygon:
     def __init__(self, points, normal: Vector3,
-                radius = 5):
+                 radius=5):
         self.points = [point for point in points]
         self.radius = radius
         self.normal = normal
 
-    def paint(self, painter, points_display_table):
+    def paint(self, painter, points_display_table):  # tests falls cause I need q
         painter.pen().setWidth(max(5, 2*self.radius))
-        painter.drawConvexPolygon(*[QtCore.QPointF(*(points_display_table[point])) for point in self.points])
+        painter.drawConvexPolygon(
+            *[QtCore.QPointF(*(points_display_table[point])) for point in self.points])
 
     def to_string(self):
         str_representation = 'pg!'
@@ -113,7 +117,7 @@ class Polygon:
             str_representation += f'|{point.to_string()}|'
         str_representation += f'!({self.normal.to_string()})!{self.radius}'
         return str_representation
-    
+
     @staticmethod
     def from_string(str_representation, objects):
         params = str_representation.split('!')
@@ -123,10 +127,11 @@ class Polygon:
             fl = False
             for i in range(1, len(str_points), 2):
                 if obj.to_string() == str_points[i]:
-                    fl = True 
+                    fl = True
             if fl:
                 points.append(obj)
-        return Polygon(points, Vector3.from_string(params[2][1:-1]), int(params[3][:-1]))
+        return Polygon(points, Vector3.from_string(params[2][1:-1]),
+                       int(params[3][:-1]))
 
 
 class Matrix:
