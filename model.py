@@ -22,6 +22,12 @@ class Model:
     def add_polygon(self, points):  # for variable count of points
         self.objects.append(Polygon(points))
 
+    def add_sphere(self):
+        point = Point(0, 0, 0)
+        point.WIDTH = 0
+        self.objects.append(point)
+        self.objects.append(Sphere(point))
+
     def display_vector(self, vector: Vector3) -> tuple:
         displayed_coordinates = (self.matrix_of_display.transpose() *
                                  vector).to_tuple()

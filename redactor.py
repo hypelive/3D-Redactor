@@ -3,7 +3,8 @@ import time
 from PyQt5 import QtGui, QtWidgets, QtCore
 import model
 from geometry import Matrix, Vector3
-from objects import Point, Line, Polygon
+from objects import Point, Line, Polygon, Sphere, Cylinder
+from drawer import Drawer
 import math
 
 
@@ -16,8 +17,9 @@ class RedactorWindow(QtWidgets.QMainWindow):
         self.split_coordinates = [600, 315]
         self.axiss_size = 250
         self.axiss_width = 3
-        self.points_display_table = {}
         self.point_buffer = []
+
+        self.drawer = None
 
         self.last_x = None
         self.last_y = None
@@ -26,6 +28,7 @@ class RedactorWindow(QtWidgets.QMainWindow):
         self.modes = {
             QtCore.Qt.Key_Q: "drag object",
             QtCore.Qt.Key_E: "drag plate",
+            QtCore.Qt.Key_R: "resize",
             QtCore.Qt.Key_L: "line",
             QtCore.Qt.Key_P: "polygon"}
 
@@ -103,6 +106,10 @@ class RedactorWindow(QtWidgets.QMainWindow):
         but.setGeometry(1150, 440, 40, 30)
         but.clicked.connect(self.add_polygon)
 
+        but = QtWidgets.QPushButton('Sp', self)
+        but.setGeometry(1150, 400, 40, 30)
+        but.clicked.connect(self.add_sphere)
+
         but = QtWidgets.QPushButton('Screenshot', self)
         but.setGeometry(15, 600, 65, 20)
         but.clicked.connect(self.screenshot)
@@ -115,80 +122,34 @@ class RedactorWindow(QtWidgets.QMainWindow):
         painter.fillRect(0, 0, 1200, 625, QtGui.QGradient.Preset(12))
 
         if self.display_axiss:
-            self.draw_coordinates_system(painter)
+            self.drawer.draw_coordinates_system(
+                self.split_coordinates, self.axiss_width,
+                self.axiss_size, painter)
 
         for obj in self.model.objects:
-            if isinstance(obj, Point):
-                display_coord = self.model.display_vector(
-                    obj.to_vector3())
-                self.points_display_table[obj] = (display_coord[0] +
-                                                  self.split_coordinates[0],
-                                                  display_coord[1] +
-                                                  self.split_coordinates[1])
-            obj.paint(painter, self.points_display_table)
+            self.drawer.paint_object(obj, self.split_coordinates, painter)
         # can we do mode description?... hmmm
         painter.drawText(15, 15, f"selected mode: {self.mode}")
         painter.end()
         self.update()
-
-    def draw_coordinates_system(self, painter: QtGui.QPainter):
-        painter.setPen(QtGui.QPen(QtCore.Qt.black, self.axiss_width,
-                                  QtCore.Qt.SolidLine))
-        width = 5
-        display_origin = self.model.display_vector(
-            self.model.origin.to_vector3())
-        display_origin = (display_origin[0] + self.split_coordinates[0],
-                          display_origin[1] + self.split_coordinates[1])
-        painter.drawEllipse(display_origin[0] - width / 2,
-                            display_origin[1] - width / 2,
-                            width, width)
-
-        painter.setPen(QtGui.QPen(QtCore.Qt.green, self.axiss_width,
-                                  QtCore.Qt.SolidLine))
-        self.draw_axis(painter, self.model.basis[0], display_origin)
-
-        painter.setPen(QtGui.QPen(QtCore.Qt.blue, self.axiss_width,
-                                  QtCore.Qt.SolidLine))
-        self.draw_axis(painter, self.model.basis[1], display_origin)
-
-        painter.setPen(QtGui.QPen(QtCore.Qt.red, self.axiss_width,
-                                  QtCore.Qt.SolidLine))
-        self.draw_axis(painter, self.model.basis[2], display_origin)
-
-        painter.setPen(QtGui.QPen(QtGui.QColor(
-            255, 102, 0), 5, QtCore.Qt.SolidLine))
-
-    def draw_axis(self, painter, basis_vector, display_origin):
-        width = 5
-        temp_point = Point(basis_vector.x * self.axiss_size,
-                           basis_vector.y * self.axiss_size,
-                           basis_vector.z * self.axiss_size)
-        display_coord = self.model.display_vector(
-            temp_point.to_vector3())
-        display_coord = (display_coord[0] + self.split_coordinates[0],
-                         display_coord[1] + self.split_coordinates[1])
-        painter.drawEllipse(display_coord[0] - width / 2,
-                            display_coord[1] - width / 2,
-                            width, width)
-        painter.drawLine(  # from start to end
-            *(display_origin),
-            *(display_coord))
 
     def mousePressEvent(self, event):
         if not self.model:
             return
         if self.mode == "line":
             self.update_object_to_interact(event)
-            if (self.object_to_interact):
+            if (self.object_to_interact and
+                    not self.object_to_interact.RESIZABLE):
                 self.point_buffer.append(self.object_to_interact)
             if len(self.point_buffer) == 2:
                 self.model.add_line(self.point_buffer[0],
                                     self.point_buffer[1])
                 self.mode = "drag object"
                 self.point_buffer = []
-        if self.mode == "polygon":
+        elif self.mode == "polygon":
             self.update_object_to_interact(event)
-            if (self.object_to_interact):
+            if (self.object_to_interact and
+                    not self.object_to_interact.RESIZABLE):
                 self.point_buffer.append(self.object_to_interact)
         self.object_to_interact = None
         self.last_x = event.x()  # 0
@@ -200,7 +161,7 @@ class RedactorWindow(QtWidgets.QMainWindow):
         if not self.model:
             return
         if self.mode == "drag object":
-            if time.time() - self.last_time_clicked < 0.15:
+            if time.time() - self.last_time_clicked < 0.15:  # maybe need more
                 if not self.object_to_interact:  # in seconds
                     self.update_object_to_interact(event)
                 if self.object_to_interact:
@@ -214,6 +175,23 @@ class RedactorWindow(QtWidgets.QMainWindow):
         elif self.mode == "drag plate":
             self.split_coordinates[0] += (event.x() - self.last_x)
             self.split_coordinates[1] += (event.y() - self.last_y)
+        elif self.mode == "resize":
+            if time.time() - self.last_time_clicked < 0.15:  # maybe need more
+                if not self.object_to_interact:  # in seconds
+                    self.update_object_to_interact(event)
+                if (self.object_to_interact and
+                        self.object_to_interact.RESIZABLE):  # to sphere
+                    self.object_to_interact.resize(
+                        -self.get_distance(
+                            self.last_x, self.last_y,
+                            self.drawer.points_display_table[
+                                self.object_to_interact.point][0],
+                            self.drawer.points_display_table[
+                                self.object_to_interact.point][1]) +
+                        self.get_distance_to_point(event,
+                                            self.object_to_interact.point))
+            else:
+                self.object_to_interact = None
         self.last_x = event.x()
         self.last_y = event.y()
         self.last_time_clicked = time.time()
@@ -224,7 +202,7 @@ class RedactorWindow(QtWidgets.QMainWindow):
             return
         if event.key() == QtCore.Qt.Key_CapsLock:
             self.display_axiss = not self.display_axiss
-        elif event.key() in self.modes:  # if we change when polygon - end pol
+        elif event.key() in self.modes:  # if we change when polygon - end pg
             if self.mode == "polygon" and len(self.point_buffer) > 2:
                 self.model.add_polygon(self.point_buffer)
                 self.point_buffer = []
@@ -238,25 +216,39 @@ class RedactorWindow(QtWidgets.QMainWindow):
     def update_object_to_interact(self, event):
         self.object_to_interact = None
         for obj in self.model.objects:
-            if obj in self.points_display_table:
+            if obj in self.drawer.points_display_table:
                 distance = self.get_distance_to_point(event, obj)
                 if obj.WIDTH > distance:
                     self.object_to_interact = obj
                     break
+            elif isinstance(obj, Sphere):
+                distance = self.get_distance_to_sphere(event, obj)
+                if obj.radius > distance:
+                    self.object_to_interact = obj
+                    break
+
+    def get_distance(self, x0, y0, x1, y1):
+        return math.sqrt((x0 - x1) * (x0 - x1) + (y0 - y1) * (y0 - y1))
 
     def get_distance_to_point(self, event, point):
-        return math.sqrt((event.x() - self.points_display_table[point][0]) *
-                         (event.x() - self.points_display_table[point][0]) +
-                         (event.y() - self.points_display_table[point][1]) *
-                         (event.y() - self.points_display_table[point][1]))
+        return self.get_distance(event.x(), event.y(),
+                                 self.drawer.points_display_table[point][0],
+                                 self.drawer.points_display_table[point][1])
+
+    def get_distance_to_sphere(self, event, sphere):
+        return self.get_distance(event.x(), event.y(),
+                                 self.drawer.points_display_table[sphere.point][0],
+                                 self.drawer.points_display_table[sphere.point][1])
 
     def init_new_model(self):
         self.model = model.Model()
+        self.drawer = Drawer(self.model)
         self.update_display()
 
     def open_model(self):  # show the window where we can write filename
-        filename, ok = QtWidgets.QInputDialog.getText(self, 'Filename',
-                                                      'Enter the filename for open:')
+        filename, ok = QtWidgets.QInputDialog.getText(
+            self, 'Filename',
+            'Enter the filename for open:')
         if not ok:
             return
         self.model = model.Model()
@@ -264,21 +256,24 @@ class RedactorWindow(QtWidgets.QMainWindow):
             self.model.open(filename)
         except FileNotFoundError:
             pass  # something will be there late
+        self.drawer = Drawer(self.model)
         self.update_display()
 
     def save_model(self):  # show the window where we can write filename
         if not self.model:
             return
-        filename, ok = QtWidgets.QInputDialog.getText(self, 'Filename',
-                                                      'Enter the filename for save:')
+        filename, ok = QtWidgets.QInputDialog.getText(
+            self, 'Filename',
+            'Enter the filename for save:')
         if not ok:
             return
         self.model.save(str(filename))
         self.update_display()
 
     def screenshot(self, filename):
-        filename, ok = QtWidgets.QInputDialog.getText(self, 'Filename',
-                                                      'Enter the filename to save screen(without extention):')
+        filename, ok = QtWidgets.QInputDialog.getText(
+            self, 'Filename',
+            'Enter the filename to save screen(without extention):')
         if not ok:
             return
         screen = QtWidgets.QApplication.primaryScreen()
@@ -297,4 +292,9 @@ class RedactorWindow(QtWidgets.QMainWindow):
     def add_polygon(self):
         if self.model:
             self.mode = self.modes[QtCore.Qt.Key_P]
+            self.update_display()
+
+    def add_sphere(self):
+        if self.model:
+            self.model.add_sphere()
             self.update_display()

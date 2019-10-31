@@ -1,9 +1,9 @@
-from PyQt5 import QtCore
 from geometry import Vector3
 
 
 class Point:
     WIDTH = 10
+    RESIZABLE = False
 
     def __init__(self, x: float, y: float, z: float):
         self.x = x
@@ -19,11 +19,6 @@ class Point:
     def to_vector3(self):
         return Vector3(self.x, self.y, self.z)
 
-    def paint(self, painter, points_display_table):
-        painter.drawEllipse(points_display_table[self][0] - self.WIDTH / 2,
-                            points_display_table[self][1] - self.WIDTH / 2,
-                            self.WIDTH, self.WIDTH)
-
     def to_string(self):
         return f'pt,{float(self.x)},{float(self.y)},{float(self.z)}'
 
@@ -36,16 +31,11 @@ class Point:
 
 class Line:
     WIDTH = 5
+    RESIZABLE = False
 
     def __init__(self, start: Point, end: Point):
         self.start = start
         self.end = end
-
-    def paint(self, painter, points_display_table):
-        painter.pen().setWidth(self.WIDTH)
-        painter.drawLine(
-            *(points_display_table[self.start]),
-            *(points_display_table[self.end]))
 
     def to_string(self):
         return f'ln!|{self.start.to_string()}||{self.end.to_string()}|'
@@ -63,14 +53,10 @@ class Line:
 
 class Polygon:
     WIDTH = 5
+    RESIZABLE = False
 
     def __init__(self, points):
         self.points = [point for point in points]
-
-    def paint(self, painter, points_display_table):
-        painter.pen().setWidth(self.WIDTH)
-        painter.drawConvexPolygon(
-            *[QtCore.QPointF(*(points_display_table[point])) for point in self.points])
 
     def to_string(self):
         str_representation = 'pg!'
@@ -93,15 +79,18 @@ class Polygon:
 
 
 class Sphere:
+    RESIZABLE = True
+
     def __init__(self, point: Point, radius=20.0):
         self.point = point
         self.radius = radius
 
-    def paint(self, painter, points_display_table):
-        width = 2*self.point.radius
-        painter.drawEllipse(points_display_table[self.point][0] - width / 2,
-                            points_display_table[self.point][1] - width / 2,
-                            width, width)
+    def __add__(self, other):
+        if isinstance(other, Vector3):
+            self.point + other
+
+    def resize(self, value):
+        self.radius += value
 
     def to_string(self):
         return f'sp!{self.point.to_string()}!{int(self.point.radius)}'
@@ -115,16 +104,11 @@ class Sphere:
 
 
 class Cylinder:
+    RESIZABLE = False
+    
     def __init__(self, line: Line, radius=20.0):
         self.line = line
         self.radius = radius
-
-    def paint(self, painter, points_display_table):
-        painter.pen().setWidth(2*self.radius)
-        painter.drawLine(
-            *(points_display_table[self.line.start]),
-            *(points_display_table[self.line.end]))
-        # print 2 ellipse
 
     def to_string(self):
         return f'ln!{self.line.to_string()}!{self.radius}'
