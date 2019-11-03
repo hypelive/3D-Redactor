@@ -237,8 +237,8 @@ class RedactorWindow(QtWidgets.QMainWindow):
 
     def get_distance_to_sphere(self, event, sphere):
         return self.get_distance(event.x(), event.y(),
-                                 self.drawer.points_display_table[sphere.point][0],
-                                 self.drawer.points_display_table[sphere.point][1])
+                            self.drawer.points_display_table[sphere.point][0],
+                            self.drawer.points_display_table[sphere.point][1])
 
     def init_new_model(self):
         self.model = model.Model()

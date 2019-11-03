@@ -105,7 +105,7 @@ class Sphere:
 
 class Cylinder:
     RESIZABLE = False
-    
+
     def __init__(self, line: Line, radius=20.0):
         self.line = line
         self.radius = radius
