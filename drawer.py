@@ -35,13 +35,13 @@ class Drawer:
     def paint_ln(self, line, painter):
         painter.pen().setWidth(line.WIDTH)
         painter.drawLine(
-            *(self.points_display_table[line.start]),
-            *(self.points_display_table[line.end]))
+            *self.points_display_table[line.start],
+            *self.points_display_table[line.end])
 
     def paint_pg(self, polygon, painter):
         painter.pen().setWidth(polygon.WIDTH)
         painter.drawConvexPolygon(
-            *[QtCore.QPointF(*(self.points_display_table[point]))
+            *[QtCore.QPointF(*self.points_display_table[point])
               for point in polygon.points])
 
     def paint_sp(self, sphere, painter):
@@ -55,8 +55,8 @@ class Drawer:
     def paint_cl(self, cylinder, painter):
         painter.pen().setWidth(2*cylinder.radius)
         painter.drawLine(
-            *(self.points_display_table[cylinder.line.start]),
-            *(self.points_display_table[cylinder.line.end]))
+            *self.points_display_table[cylinder.line.start],
+            *self.points_display_table[cylinder.line.end])
         # print 2 ellipse
 
     def draw_coordinates_system(self, split_coordinates, axiss_width,
@@ -104,5 +104,5 @@ class Drawer:
                             display_coord[1] - width / 2,
                             width, width)
         painter.drawLine(  # from start to end
-            *(display_origin),
-            *(display_coord))
+            *display_origin,
+            *display_coord)

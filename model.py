@@ -56,16 +56,16 @@ class Model:
     def open(self, filename: str):
         with open(filename, 'r', encoding='utf8') as file:
 
-            line = file.readline()
+            line = next(file)
             objects = line.split(' ')
             self.basis = (Vector3.from_string(objects[0]),
                           Vector3.from_string(objects[1]),
                           Vector3.from_string(objects[2]))
 
-            line = file.readline()
+            line = next(file)
             self.origin = Point.from_string(line)
 
-            line = file.readline()
+            line = next(file)
             objects = line.split(' ')
             self.display_plate_basis = [Vector3.from_string(objects[0]),
                                         Vector3.from_string(objects[1]),
@@ -75,7 +75,7 @@ class Model:
                 if not line:
                     return
                 obj = None
-                if line[0:2] == 'pt':
+                if line.startswith('pt'):
                     obj = Point.from_string(line)
                 elif line[0:2] == 'ln':
                     obj = Line.from_string(line, self.objects)

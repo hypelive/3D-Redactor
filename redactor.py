@@ -7,6 +7,8 @@ from objects import Point, Line, Polygon, Sphere, Cylinder
 from drawer import Drawer
 import math
 
+class SceneWindow(QtWidgets.QFrame):
+    pass
 
 class RedactorWindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -24,6 +26,7 @@ class RedactorWindow(QtWidgets.QMainWindow):
         self.last_x = None
         self.last_y = None
         self.last_time_clicked = time.time()
+        self.forget_object_delay = 0.15
 
         self.modes = {
             QtCore.Qt.Key_Q: "drag object",
@@ -63,9 +66,11 @@ class RedactorWindow(QtWidgets.QMainWindow):
 
         self.initGUI()
 
+        self.init_new_model()
+
     def initGUI(self):
         self.setGeometry(0, 0, 1200, 625)  # x y wide tall
-        icon = QtGui.QIcon('textures\\icon.png')
+        icon = QtGui.QIcon('textures/icon.png')
         self.setWindowIcon(icon)
         self.setWindowTitle('Black Box editor')
         self.label = QtWidgets.QLabel(self)
@@ -82,37 +87,55 @@ class RedactorWindow(QtWidgets.QMainWindow):
         painter.setPen(pen)
         painter.end()
 
-        but = QtWidgets.QPushButton('N', self)
-        but.setGeometry(1080, 600, 30, 20)
-        but.clicked.connect(self.init_new_model)
-
-        but = QtWidgets.QPushButton('O', self)
-        but.setGeometry(1120, 600, 30, 20)
-        but.clicked.connect(self.open_model)
-
-        but = QtWidgets.QPushButton('S', self)
-        but.setGeometry(1160, 600, 30, 20)
-        but.clicked.connect(self.save_model)
-
         but = QtWidgets.QPushButton('Pt', self)
-        but.setGeometry(1150, 520, 40, 30)
+        but.setGeometry(20, 60, 40, 30)
         but.clicked.connect(self.add_point)
+        but.setIcon(QtGui.QIcon('textures/pt.png'))
+        but.setIconSize(QtCore.QSize(20, 15))
 
         but = QtWidgets.QPushButton('Ln', self)
-        but.setGeometry(1150, 480, 40, 30)
+        but.setGeometry(20, 100, 40, 30)
         but.clicked.connect(self.add_line)
+        but.setIcon(QtGui.QIcon('textures/ln.png'))
+        but.setIconSize(QtCore.QSize(30, 15))
 
-        but = QtWidgets.QPushButton('Plg', self)
-        but.setGeometry(1150, 440, 40, 30)
+        but = QtWidgets.QPushButton('Pg', self)
+        but.setGeometry(20, 140, 40, 30)
         but.clicked.connect(self.add_polygon)
+        but.setIcon(QtGui.QIcon('textures/plg.png'))
+        but.setIconSize(QtCore.QSize(20, 15))
 
         but = QtWidgets.QPushButton('Sp', self)
-        but.setGeometry(1150, 400, 40, 30)
+        but.setGeometry(20, 180, 40, 30)
         but.clicked.connect(self.add_sphere)
+        but.setIcon(QtGui.QIcon('textures/sp.png'))
+        but.setIconSize(QtCore.QSize(25, 17))
 
-        but = QtWidgets.QPushButton('Screenshot', self)
+        but = QtWidgets.QPushButton('scr', self)
         but.setGeometry(15, 600, 65, 20)
         but.clicked.connect(self.screenshot)
+        but.setIcon(QtGui.QIcon('textures/camera.png'))
+        but.setIconSize(QtCore.QSize(30, 20))
+
+        new_scene_action = QtWidgets.QAction(QtGui.QIcon('textures/new.png'), 'New', self)
+        new_scene_action.triggered.connect(self.init_new_model)
+        save_action = QtWidgets.QAction(QtGui.QIcon('textures/save.png'), 'Save', self)
+        save_action.triggered.connect(self.save_model)
+        open_action = QtWidgets.QAction(QtGui.QIcon('textures/open.png'), 'Open', self)
+        open_action.triggered.connect(self.open_model)
+        menubar = self.menuBar()
+        menubar.setStyleSheet("""QMenuBar {
+         background-color: rgb(220,150,120);
+        }
+
+     QMenuBar::item {
+         background: rgb(220,150,120);
+     }""")
+        fileMenu = menubar.addMenu('Files')
+        fileMenu.addAction(new_scene_action)
+        fileMenu.addAction(save_action)
+        fileMenu.addAction(open_action)
+        fileMenu = menubar.addMenu('Modes')
 
     def update_display(self):
         painter = QtGui.QPainter(self.label.pixmap())
@@ -129,7 +152,7 @@ class RedactorWindow(QtWidgets.QMainWindow):
         for obj in self.model.objects:
             self.drawer.paint_object(obj, self.split_coordinates, painter)
         # can we do mode description?... hmmm
-        painter.drawText(15, 15, f"selected mode: {self.mode}")
+        painter.drawText(20, 40, f"selected mode: {self.mode}")
         painter.end()
         self.update()
 
@@ -161,7 +184,7 @@ class RedactorWindow(QtWidgets.QMainWindow):
         if not self.model:
             return
         if self.mode == "drag object":
-            if time.time() - self.last_time_clicked < 0.15:  # maybe need more
+            if time.time() - self.last_time_clicked < self.forget_object_delay:  # maybe need more
                 if not self.object_to_interact:  # in seconds
                     self.update_object_to_interact(event)
                 if self.object_to_interact:
@@ -176,7 +199,7 @@ class RedactorWindow(QtWidgets.QMainWindow):
             self.split_coordinates[0] += (event.x() - self.last_x)
             self.split_coordinates[1] += (event.y() - self.last_y)
         elif self.mode == "resize":
-            if time.time() - self.last_time_clicked < 0.15:  # maybe need more
+            if time.time() - self.last_time_clicked < self.forget_object_delay:  # maybe need more
                 if not self.object_to_interact:  # in seconds
                     self.update_object_to_interact(event)
                 if (self.object_to_interact and
@@ -228,7 +251,7 @@ class RedactorWindow(QtWidgets.QMainWindow):
                     break
 
     def get_distance(self, x0, y0, x1, y1):
-        return math.sqrt((x0 - x1) * (x0 - x1) + (y0 - y1) * (y0 - y1))
+        return math.sqrt((x0 - x1)**2 + (y0 - y1)**2)
 
     def get_distance_to_point(self, event, point):
         return self.get_distance(event.x(), event.y(),
@@ -239,6 +262,15 @@ class RedactorWindow(QtWidgets.QMainWindow):
         return self.get_distance(event.x(), event.y(),
                             self.drawer.points_display_table[sphere.point][0],
                             self.drawer.points_display_table[sphere.point][1])
+
+    def set_view_mode(self): # polygon set
+        pass
+
+    def set_edit_mode(self):
+        pass
+
+    def set_resize_mode(self):
+        pass
 
     def init_new_model(self):
         self.model = model.Model()
