@@ -28,6 +28,14 @@ class Vector3:
     def to_tuple(self):
         return(self.x, self.y, self.z)
 
+    def __dict__(self):
+        return {
+            '__Vector3__': True,
+            'x': self.x,
+            'y': self.y,
+            'z': self.z
+        }
+
     def to_string(self):
         return f'{float(self.x)},{float(self.y)},{float(self.z)}'
 
