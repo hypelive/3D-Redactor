@@ -36,13 +36,12 @@ class Vector3:
             'z': self.z
         }
 
-    def to_string(self):
+    def __str__(self):
         return f'{float(self.x)},{float(self.y)},{float(self.z)}'
 
     @staticmethod
     def from_string(str_representation):
-        params = str_representation.split(',')
-        return Vector3(float(params[0]), float(params[1]), float(params[2]))
+        return Vector3(*map(float, str_representation.split(',')))
 
 
 class Matrix:

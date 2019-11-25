@@ -305,7 +305,8 @@ class RedactorWindow(QtWidgets.QMainWindow):
             return
         self.model = model.Model()
         try:
-            self.model.open(filename)
+            with open(filename, 'r', encoding='utf8') as file:
+                self.model.open(file)
         except FileNotFoundError:
             pass  # something will be there late
         self.label.drawer = Drawer(self.model)
@@ -319,7 +320,11 @@ class RedactorWindow(QtWidgets.QMainWindow):
             'Enter the filename for save:')
         if not ok:
             return
-        self.model.save(str(filename))
+        #try:
+        with open(filename, 'w', encoding='utf8') as file:
+            self.model.save(file)
+        #except Exception:
+        #    print('whar')
         self.update_display()
 
     def screenshot(self, filename):

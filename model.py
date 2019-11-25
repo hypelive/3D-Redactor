@@ -50,49 +50,44 @@ class Model:
                                                      self.display_plate_basis[2]).to_tuple()))
             self.update_display_matrix(None)
 
-    def save(self, filename: str):
-        with open(filename, 'w', encoding='utf8') as file:
-            file.write(self.to_string())
+    def save(self, file):
+        file.write(str(self))
     
     def save_j(self, filename: str):
         with open(filename, 'w', encoding='utf8') as file:
             file.write(json.dumps(self.__dict__()))
 
-    def open(self, filename: str):
-        with open(filename, 'r', encoding='utf8') as file:
+    def open(self, file):
+        line = next(file)
+        objects = line.split(' ')
+        self.basis = (Vector3.from_string(objects[0]),
+                        Vector3.from_string(objects[1]),
+                        Vector3.from_string(objects[2]))
 
-            line = next(file)
-            objects = line.split(' ')
-            self.basis = (Vector3.from_string(objects[0]),
-                          Vector3.from_string(objects[1]),
-                          Vector3.from_string(objects[2]))
+        line = next(file)
+        self.origin = Point.from_string(line)
 
-            line = next(file)
-            self.origin = Point.from_string(line)
+        line = next(file)
+        objects = line.split(' ')
+        self.display_plate_basis = [Vector3.from_string(objects[0]),
+                                    Vector3.from_string(objects[1]),
+                                    Vector3.from_string(objects[2])]
 
-            line = next(file)
-            objects = line.split(' ')
-            self.display_plate_basis = [Vector3.from_string(objects[0]),
-                                        Vector3.from_string(objects[1]),
-                                        Vector3.from_string(objects[2])]
+        destringers = {
+            'pt': Point.from_string,
+            'ln': Line.from_string,
+            'pg': Polygon.from_string,
+            'sp': Sphere.from_string,
+            'cl': Cylinder.from_string
+        }
 
-            for line in file:
-                if not line:
-                    return
-                obj = None
-                if line.startswith('pt'):
-                    obj = Point.from_string(line)
-                elif line[0:2] == 'ln':
-                    obj = Line.from_string(line, self.objects)
-                elif line[0:2] == 'pg':
-                    obj = Polygon.from_string(line, self.objects)
-                elif line[0:2] == 'sp':
-                    obj = Sphere.from_string(line, self.objects)
-                elif line[0:2] == 'cl':
-                    obj = Cylinder.from_string(line, self.objects)
-                self.objects.append(obj)
+        for line in file:
+            if not line:
+                return
+            obj = destringers[line[0:2]](line, self.objects)
+            self.objects.append(obj)
 
-            self.update_display_matrix(None)
+        self.update_display_matrix(None)
 
     def open_j(self, filename: str):
         dedictors = {
@@ -115,13 +110,13 @@ class Model:
                     self.objects.append(dedictors[key](obj, self.objects)) 
 
 
-    def to_string(self):  # стиль стилем, конечно, но разве так не лучше?
-        str_representation = f'''{self.basis[0].to_string()} {self.basis[1].to_string()} {self.basis[2].to_string()}
-{self.origin.to_string()}
-{self.display_plate_basis[0].to_string()} {self.display_plate_basis[1].to_string()} {self.display_plate_basis[2].to_string()}
+    def __str__(self):  # стиль стилем, конечно, но разве так не лучше?
+        str_representation = f'''{str(self.basis[0])} {str(self.basis[1])} {str(self.basis[2])}
+{str(self.origin)}
+{str(self.display_plate_basis[0])} {str(self.display_plate_basis[1])} {str(self.display_plate_basis[2])}
 '''
         for obj in self.objects:
-            str_representation += f'{obj.to_string()}\n'
+            str_representation += f'{str(obj)}\n'
         return str_representation
 
     def __dict__(self):

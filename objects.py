@@ -27,7 +27,7 @@ class Point:
             'z': self.z
          }
 
-    def to_string(self):
+    def __str__(self):
         return f'pt,{float(self.x)},{float(self.y)},{float(self.z)}'
     
     @staticmethod
@@ -37,7 +37,7 @@ class Point:
         return Point(p_dict['x'], p_dict['y'], p_dict['z']) 
 
     @staticmethod
-    def from_string(str_representation):
+    def from_string(str_representation, objects= None):
         params = str_representation.split(',')
         return Point(float(params[1]), float(params[2]),
                      float(params[3]))
@@ -58,8 +58,8 @@ class Line:
             'end': self.end.__dict__()
          }
 
-    def to_string(self):
-        return f'ln!|{self.start.to_string()}||{self.end.to_string()}|'
+    def __str__(self):
+        return f'ln!|{str(self.start)}||{str(self.end)}|'
     
     @staticmethod
     def __dedict__(l_dict, objects):
@@ -77,8 +77,8 @@ class Line:
         str_points = str_representation.split('|')
         points = []
         for obj in objects:
-            if (obj.to_string() == str_points[1] or
-                    obj.to_string() == str_points[3]):
+            if (str(obj) == str_points[1] or
+                    str(obj) == str_points[3]):
                 points.append(obj)
         return Line(points[0], points[1])
 
@@ -96,10 +96,10 @@ class Polygon:
             'points': [point.__dict__() for point in self.points]
         }
 
-    def to_string(self):
+    def __str__(self):
         str_representation = 'pg!'
         for point in self.points:
-            str_representation += f'|{point.to_string()}|'
+            str_representation += f'|{str(point)}|'
         return str_representation
 
     @staticmethod
@@ -123,7 +123,7 @@ class Polygon:
         for obj in objects:
             fl = False
             for i in range(1, len(str_points), 2):
-                if obj.to_string() == str_points[i]:
+                if str(obj) == str_points[i]:
                     fl = True
             if fl:
                 points.append(obj)
@@ -144,14 +144,14 @@ class Sphere:
     def resize(self, value):
         self.radius += value
 
-    def to_string(self):
-        return f'sp!{self.point.to_string()}!{int(self.point.radius)}'
+    def __str__(self):
+        return f'sp!{str(self.point)}!{int(self.point.WIDTH)}'
 
     @staticmethod
     def from_string(str_representation, objects):
         params = str_representation.split('!')
         for obj in objects:
-            if obj.to_string() == params[1]:
+            if str(obj) == params[1]:
                 return Sphere(obj, float(params[2]))
 
 
@@ -162,12 +162,12 @@ class Cylinder:
         self.line = line
         self.radius = radius
 
-    def to_string(self):
-        return f'ln!{self.line.to_string()}!{self.radius}'
+    def __str__(self):
+        return f'ln!{str(self.line)}!{self.radius}'
 
     @staticmethod
     def from_string(str_representation: str, objects):
         params = str_representation.split('!')
         for obj in objects:
-            if (obj.to_string() == params[1]):
+            if (str(obj) == params[1]):
                 return Cylinder(obj, float(params[2]))
