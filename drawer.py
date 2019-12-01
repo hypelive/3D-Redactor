@@ -5,12 +5,33 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 class Drawer:
     def __init__(self, model):
         self.model = model
+        self.displayed_objects = []  # to hide objects later
         self.points_display_table = {}
+
         self.draw_table = {
             Point: self.paint_pt,
             Line: self.paint_ln,
             Polygon: self.paint_pg,
             Sphere: self.paint_sp,
+            Cylinder: self.paint_cl
+        }
+
+        self.check_to_visible = {
+            Point: lambda point: model.get_plate_equation_value(point.x,
+                                                                point.y,
+                                                                point.z) >= 0,
+            Line: lambda line: any(model.get_plate_equation_value(line.start.x,
+                                                                  line.start.y,
+                                                                  line.start.z) >= 0,
+                                   model.get_plate_equation_value(line.end.x,
+                                                                  line.end.y,
+                                                                  line.end.z) >= 0),
+            Polygon: lambda polygon: any((model.get_plate_equation_value(point.x,
+                                                                         point.y,
+                                                                         point.z) >= 0 for point in polygon.points)),
+            Sphere: lambda sphere: model.get_plate_equation_value(sphere.point.x,
+                                                                  sphere.point.y,
+                                                                  sphere.point.z) >= 0,
             Cylinder: self.paint_cl
         }
 
@@ -23,7 +44,12 @@ class Drawer:
                                                   split_coordinates[0],
                                                   display_coord[1] +
                                                   split_coordinates[1])
-            self.draw_table[type(obj)](obj, painter)
+            if self.is_visible(obj): # for perspective need
+                self.draw_table[type(obj)](obj, painter)
+                self.displayed_objects.append(obj)
+
+    def is_visible(self, obj):
+        return self.check_to_visible[type(obj)](obj)
 
     def paint_pt(self, point, painter):
         painter.drawEllipse(self.points_display_table[point][0] -
@@ -59,31 +85,31 @@ class Drawer:
             *self.points_display_table[cylinder.line.end])
         # print 2 ellipse
 
-    def draw_coordinates_system(self, split_coordinates, axiss_width,
+    def draw_coordinates_system(self, split_coordinates, axiss_width,  # cell system need
                                 axiss_size, painter):
-        painter.setPen(QtGui.QPen(QtCore.Qt.black, axiss_width,
+        painter.setPen(QtGui.QPen(QtCore.Qt.white, axiss_width,
                                   QtCore.Qt.SolidLine))
         width = 5
         display_origin = self.model.display_vector(
             self.model.origin.to_vector3())
-        display_origin = (display_origin[0] + split_coordinates[0],
-                          display_origin[1] + split_coordinates[1])
+        display_origin = (display_origin[0] + 1200,
+                          display_origin[1] + 80)
         painter.drawEllipse(display_origin[0] - width / 2,
                             display_origin[1] - width / 2,
                             width, width)
 
         painter.setPen(QtGui.QPen(QtCore.Qt.green, axiss_width,
-                                  QtCore.Qt.SolidLine))
+                                  QtCore.Qt.DashLine))
         self.draw_axis(painter, self.model.basis[0], display_origin,
                        split_coordinates, axiss_size)
 
         painter.setPen(QtGui.QPen(QtCore.Qt.blue, axiss_width,
-                                  QtCore.Qt.SolidLine))
+                                  QtCore.Qt.DashLine))
         self.draw_axis(painter, self.model.basis[1], display_origin,
                        split_coordinates, axiss_size)
 
         painter.setPen(QtGui.QPen(QtCore.Qt.red, axiss_width,
-                                  QtCore.Qt.SolidLine))
+                                  QtCore.Qt.DashLine))
         self.draw_axis(painter, self.model.basis[2], display_origin,
                        split_coordinates, axiss_size)
 
@@ -98,8 +124,8 @@ class Drawer:
                            basis_vector.z * axiss_size)
         display_coord = self.model.display_vector(
             temp_point.to_vector3())
-        display_coord = (display_coord[0] + split_coordinates[0],
-                         display_coord[1] + split_coordinates[1])
+        display_coord = (display_coord[0] + 1200,
+                         display_coord[1] + 80)
         painter.drawEllipse(display_coord[0] - width / 2,
                             display_coord[1] - width / 2,
                             width, width)

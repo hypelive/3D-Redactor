@@ -51,6 +51,11 @@ class Line:
         self.start = start
         self.end = end
 
+    def __add__(self, other):
+        if isinstance(other, Vector3):
+            self.start + other
+            self.end + other
+
     def __dict__(self):
         return {
             '__Line__': True,
@@ -89,6 +94,11 @@ class Polygon:
 
     def __init__(self, points):
         self.points = [point for point in points]
+
+    def __add__(self, other):
+        if isinstance(other, Vector3):
+            for point in self.points:
+                point + other
 
     def __dict__(self):
         return {

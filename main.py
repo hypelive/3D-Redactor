@@ -6,7 +6,7 @@ import redactor
 def main():
     application = QtWidgets.QApplication(sys.argv)
     redactor_window = redactor.RedactorWindow()
-    redactor_window.setFixedSize(1200, 625)
+    redactor_window.setFixedSize(redactor.RESOLUTION[0], redactor.RESOLUTION[1])
     redactor_window.show()
     application.exec_()
 

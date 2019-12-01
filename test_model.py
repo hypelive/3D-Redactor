@@ -8,22 +8,22 @@ class RedactorTests(unittest.TestCase):
     def test_display(self):
         model = Model()
         self.assertEqual(model.display_vector(
-                         Vector3(1, 0, 0)), (0, 0))
+                         Vector3(1, 0, 0)), (0, 0, -1))
         self.assertEqual(model.display_vector(
-                         Vector3(0, 1, 0)), (1, 0))
+                         Vector3(0, 1, 0)), (1, 0, 0))
         self.assertEqual(model.display_vector(
-                         Vector3(0, 0, 1)), (0, 1))
+                         Vector3(0, 0, 1)), (0, 1, 0))
 
     def test_display_complex_vector(self):
         model = Model()
         self.assertEqual(model.display_vector(
-                         Vector3(1, 2, 3)), (2, 3))
+                         Vector3(1, 2, 3)), (2, 3, -1))
 
     def test_matrix_of_display(self):
         model = Model()
-        self.assertEqual(model.matrix_of_display[0], [0, 0, -1])
-        self.assertEqual(model.matrix_of_display[1], [1, 0, 0])
-        self.assertEqual(model.matrix_of_display[2], [0, 1, 0])
+        self.assertEqual(model.matrix_of_display.transpose()[0], [0, 0, -1])
+        self.assertEqual(model.matrix_of_display.transpose()[1], [1, 0, 0])
+        self.assertEqual(model.matrix_of_display.transpose()[2], [0, 1, 0])
 
     def test_rotate_plate_of_display_z(self):
         model = Model()
@@ -34,21 +34,35 @@ class RedactorTests(unittest.TestCase):
                                            math.sin(rotate_angle),
                                            math.cos(rotate_angle)))
 
-        self.assertTrue(math.fabs(model.matrix_of_display[0][0]) < 1e-15)
-        self.assertTrue(math.fabs(model.matrix_of_display[0][1]) < 1e-15)
-        self.assertTrue(math.fabs(model.matrix_of_display[0][2] + 1) < 1e-15)
-        self.assertTrue(math.fabs(model.matrix_of_display[1][0]) < 1e-15)
-        self.assertTrue(math.fabs(model.matrix_of_display[1][1] + 1) < 1e-15)
-        self.assertTrue(math.fabs(model.matrix_of_display[1][2]) < 1e-15)
-        self.assertTrue(math.fabs(model.matrix_of_display[2][0] - 1) < 1e-15)
-        self.assertTrue(math.fabs(model.matrix_of_display[2][1]) < 1e-15)
-        self.assertTrue(math.fabs(model.matrix_of_display[2][2]) < 1e-15)
+        self.assertTrue(math.fabs(model.matrix_of_display.transpose()[0][0]) < 1e-15)
+        self.assertTrue(math.fabs(model.matrix_of_display.transpose()[0][1]) < 1e-15)
+        self.assertTrue(math.fabs(model.matrix_of_display.transpose()[0][2] + 1) < 1e-15)
+        self.assertTrue(math.fabs(model.matrix_of_display.transpose()[1][0]) < 1e-15)
+        self.assertTrue(math.fabs(model.matrix_of_display.transpose()[1][1] + 1) < 1e-15)
+        self.assertTrue(math.fabs(model.matrix_of_display.transpose()[1][2]) < 1e-15)
+        self.assertTrue(math.fabs(model.matrix_of_display.transpose()[2][0] - 1) < 1e-15)
+        self.assertTrue(math.fabs(model.matrix_of_display.transpose()[2][1]) < 1e-15)
+        self.assertTrue(math.fabs(model.matrix_of_display.transpose()[2][2]) < 1e-15)
 
     def test_display_model(self):
         model = Model()
         self.assertEqual(model.display_vector(
-            Vector3(1, 0, 0)), (0, 0))
+            Vector3(1, 0, 0)), (0, 0, -1))
         self.assertEqual(model.display_vector(
-            Vector3(0, 1, 0)), (1, 0))
+            Vector3(0, 1, 0)), (1, 0, 0))
         self.assertEqual(model.display_vector(
-            Vector3(0, 0, 1)), (0, 1))
+            Vector3(0, 0, 1)), (0, 1, 0))
+
+    def test_undisplay_vector(self):
+        model = Model()
+        self.assertEqual(model.undisplay_vector(
+                         Vector3(0, 0, -1)), (1, 0, 0))
+        self.assertEqual(model.undisplay_vector(
+                         Vector3(1, 0, 0)), (0, 1, 0))
+        self.assertEqual(model.undisplay_vector(
+                         Vector3(0, 1, 0)), (0, 0, 1))
+    
+    def test_undisplay_complex_vector(self):
+        model = Model()
+        self.assertEqual(model.undisplay_vector(
+                         Vector3(2, 3, -1)), (1, 2, 3))
