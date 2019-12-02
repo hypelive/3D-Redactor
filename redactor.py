@@ -15,6 +15,7 @@ class Mode(Enum):
     VIEW = 0
     EDIT = 1
     RESIZE = 2
+    DELETE = 8
     POINT = 3
     LINE = 4
     POLYGON = 5
@@ -30,37 +31,30 @@ class SceneWindow(QtWidgets.QLabel):
         canvas.fill(QtGui.QColor('grey'))
         self.setPixmap(canvas)
 
-        self.last_x = None
-        self.last_y = None
+        self.last_x = 0
+        self.last_y = 0
         self.last_time_clicked = time.time()
         self.forget_object_delay = 0.15
         self.object_to_interact = None
+
+        self.split_coordinates = [640, 360]
 
         self.drawer = None
         self.style_preset = 81
 
     def update_scene_display(self):
         with self.get_painter() as painter:
-            painter.fillRect(
-                0, 0, RESOLUTION[0], RESOLUTION[1], QtGui.QGradient.Preset(self.style_preset))
-
-            if self.parent().display_axiss:
-                self.drawer.draw_coordinates_system(
-                    self.parent().split_coordinates, self.parent().axiss_width,
-                    self.parent().axiss_size, painter)
-
-            for obj in self.parent().model.objects:
-                self.drawer.paint_object(
-                    obj, self.parent().split_coordinates, painter)
-            # can we do mode description?... hmmm
-            painter.drawText(
-                20, 40, f"selected mode: {str(self.parent().mode)}")
+            self.drawer.update_scene(painter, RESOLUTION, self.split_coordinates)
+            
+            global_coord = (self.parent().model.display_plate_basis[0] * self.last_x +
+                            self.parent().model.display_plate_basis[1] * self.last_y) 
+            self.parent().statusBar().showMessage(f'Mode: {str(self.parent().mode)[5:]}; x={global_coord.x} y={global_coord.y} z={global_coord.z}')
 
     def get_painter(self):
         painter = QtGui.QPainter(self.pixmap())
         painter.setPen(QtGui.QPen(QtGui.QColor(
-            255, 102, 0), 5, QtCore.Qt.SolidLine))
-        painter.setBrush(QtGui.QBrush(QtGui.QColor(255, 102, 70)))
+            230, 102, 0), 5, QtCore.Qt.SolidLine))
+        painter.setBrush(QtGui.QBrush(QtGui.QColor(230, 102, 30)))
         return painter
 
     def mousePressEvent(self, event):
@@ -72,6 +66,8 @@ class SceneWindow(QtWidgets.QLabel):
             self.choose_polygon_points(event)
         elif self.parent().mode == Mode.SPHERE:
             self.set_sphere(event)
+        elif self.parent().mode == Mode.DELETE:
+            self.delete_object(event)
 
         self.object_to_interact = None
         self.refresh_interaction_variables(event)
@@ -83,14 +79,14 @@ class SceneWindow(QtWidgets.QLabel):
         self.last_time_clicked = time.time()
 
     def set_point(self, event):
-        self.parent().model.add_point((self.parent().model.display_plate_basis[0] * (event.x() - self.parent().split_coordinates[0])) +
+        self.parent().model.add_point((self.parent().model.display_plate_basis[0] * (event.x() - self.split_coordinates[0])) +
                                       (self.parent(
-                                      ).model.display_plate_basis[1] * (event.y() - self.parent().split_coordinates[1])))
+                                      ).model.display_plate_basis[1] * (event.y() - self.split_coordinates[1])))
 
     def set_sphere(self, event):
-        self.parent().model.add_sphere((self.parent().model.display_plate_basis[0] * (event.x() - self.parent().split_coordinates[0])) +
+        self.parent().model.add_sphere((self.parent().model.display_plate_basis[0] * (event.x() - self.split_coordinates[0])) +
                                        (self.parent(
-                                       ).model.display_plate_basis[1] * (event.y() - self.parent().split_coordinates[1])))
+                                       ).model.display_plate_basis[1] * (event.y() - self.split_coordinates[1])))
 
     def choose_line_points(self, event):
         self.update_object_to_interact(event)
@@ -106,11 +102,16 @@ class SceneWindow(QtWidgets.QLabel):
         self.update_object_to_interact(event)
         if self.object_to_interact and isinstance(self.object_to_interact, Point):
             self.parent().point_buffer.append(self.object_to_interact)
+        
+    def delete_object(self, event):
+        self.update_object_to_interact(event)
+        if self.object_to_interact:
+            self.parent().model.objects.remove(self.object_to_interact)
 
     def mouseMoveEvent(self, event: QtGui.QMouseEvent):
         if self.parent().mode == Mode.VIEW:
-            self.parent().split_coordinates[0] += event.x() - self.last_x
-            self.parent().split_coordinates[1] += event.y() - self.last_y
+            self.split_coordinates[0] += event.x() - self.last_x
+            self.split_coordinates[1] += event.y() - self.last_y
         elif self.parent().mode == Mode.EDIT:
             self.edit_object(event)
         elif self.parent().mode == Mode.RESIZE:
@@ -215,9 +216,6 @@ class RedactorWindow(QtWidgets.QMainWindow):
 
         self.model = None
 
-        self.split_coordinates = [640, 360]
-        self.axiss_size = 50
-        self.axiss_width = 3
         self.point_buffer = []
 
         self.drawer = None
@@ -266,74 +264,48 @@ class RedactorWindow(QtWidgets.QMainWindow):
         icon = QtGui.QIcon('textures/icon.png')
         self.setWindowIcon(icon)
         self.setWindowTitle('Black Box editor')
-#
-#        new_scene_action = QtWidgets.QAction(
-#            QtGui.QIcon('textures/new.png'), 'New', self)
-#        new_scene_action.triggered.connect(self.init_new_model)
-#        save_action = QtWidgets.QAction(
-#            QtGui.QIcon('textures/save.png'), 'Save', self)
-#        save_action.triggered.connect(self.save_model)
-#        open_action = QtWidgets.QAction(
-#            QtGui.QIcon('textures/open.png'), 'Open', self)
-#        open_action.triggered.connect(self.open_model)
-#        menubar = self.menuBar()
-#        menubar.setStyleSheet("""QMenuBar {
-#         background-color: rgb(220,150,120);
-#        }
-#
-#     QMenuBar::item {
-#         background: rgb(220,150,120);
-#     }""")
-#        fileMenu = menubar.addMenu('Files')  # menu
-#        fileMenu.addAction(new_scene_action)
-#        fileMenu.addAction(save_action)
-#        fileMenu.addAction(open_action)
-#        fileMenu = menubar.addMenu('Modes')
-#
+
+        new_scene_action = self.new_action('textures/new.png', 'New', self.init_new_model)
+        save_action = self.new_action('textures/save.png', 'Save', self.save_model, 'Ctrl+S')
+        open_action = self.new_action('textures/open.png', 'Open', self.open_model)
+        screen_action = self.new_action('textures/screen.png', 'Scr', self.screenshot)
+        point_action = self.new_action('textures/pt.png', 'Point', lambda _: self.set_mode(Mode.POINT), '1')
+        line_action = self.new_action('textures/ln.png', 'Line', lambda _: self.set_mode(Mode.LINE), '2')
+        polygon_action = self.new_action('textures/plg.png', 'Polygon', lambda _: self.set_mode(Mode.POLYGON), '3')
+        sphere_action = self.new_action('textures/sp.png', 'Sphere', lambda _: self.set_mode(Mode.SPHERE), '4')
+        delete_action = self.new_action('textures/delete.png', 'Delete', lambda _: self.set_mode(Mode.DELETE))
+        menubar = self.menuBar()
+        menubar.setStyleSheet("""QMenuBar {
+         background-color: rgb(220,150,120);
+        }
+
+     QMenuBar::item {
+         background: rgb(220,150,120);
+     }""")
+        fileMenu = menubar.addMenu('Files')  # menu
+        fileMenu.addAction(new_scene_action)
+        fileMenu.addAction(save_action)
+        fileMenu.addAction(open_action)
+        menubar.addAction(screen_action)
+        toolbar = QtWidgets.QToolBar(self)
+        self.addToolBar(QtCore.Qt.LeftToolBarArea, toolbar)
+        toolbar.addAction(point_action)
+        toolbar.addAction(line_action)
+        toolbar.addAction(polygon_action)
+        toolbar.addAction(sphere_action)
+        toolbar.addAction(delete_action)
+        self.statusBar()
+
         self.label = SceneWindow(self)
         self.setCentralWidget(self.label)
 
-        but = QtWidgets.QPushButton('Pt', self)  # vinesti v method
-        but.setGeometry(20, 60, 40, 30)
-        but.clicked.connect(lambda _: self.set_mode(Mode.POINT))
-        but.setIcon(QtGui.QIcon('textures/pt.png'))
-        but.setIconSize(QtCore.QSize(20, 15))
-
-        but = QtWidgets.QPushButton('Ln', self)
-        but.setGeometry(20, 100, 40, 30)
-        but.clicked.connect(lambda _: self.set_mode(Mode.LINE))
-        but.setIcon(QtGui.QIcon('textures/ln.png'))
-        but.setIconSize(QtCore.QSize(30, 15))
-
-        but = QtWidgets.QPushButton('Pg', self)
-        but.setGeometry(20, 140, 40, 30)
-        but.clicked.connect(lambda _: self.set_mode(Mode.POLYGON))
-        but.setIcon(QtGui.QIcon('textures/plg.png'))
-        but.setIconSize(QtCore.QSize(20, 15))
-
-        but = QtWidgets.QPushButton('Sp', self)
-        but.setGeometry(20, 180, 40, 30)
-        but.clicked.connect(lambda _: self.set_mode(Mode.SPHERE))
-        but.setIcon(QtGui.QIcon('textures/sp.png'))
-        but.setIconSize(QtCore.QSize(25, 17))
-
-        but = QtWidgets.QPushButton('scr', self)
-        but.setGeometry(15, 600, 65, 20)
-        but.clicked.connect(self.screenshot)
-        but.setIcon(QtGui.QIcon('textures/camera.png'))
-        but.setIconSize(QtCore.QSize(30, 20))
-
-        but = QtWidgets.QPushButton('save', self)
-        but.setGeometry(50, 600, 65, 20)
-        but.clicked.connect(self.save_model)
-        but.setIcon(QtGui.QIcon('textures/camera.png'))
-        but.setIconSize(QtCore.QSize(30, 20))
-
-        but = QtWidgets.QPushButton('open', self)
-        but.setGeometry(140, 600, 65, 20)
-        but.clicked.connect(self.open_model)
-        but.setIcon(QtGui.QIcon('textures/camera.png'))
-        but.setIconSize(QtCore.QSize(30, 20))
+    def new_action(self, icon, name, connect_with, shortcut=None):
+        action = QtWidgets.QAction(
+            QtGui.QIcon(icon), name, self)
+        action.triggered.connect(connect_with)
+        if shortcut:
+            action.setShortcut(shortcut)
+        return action
 
     def update_display(self):
         self.label.update_scene_display()
@@ -354,8 +326,11 @@ class RedactorWindow(QtWidgets.QMainWindow):
             self.model.update_display_matrix(self.rotate[event.key()])
         self.update_display()
 
-    def set_mode(self, mode: Mode):  # mode change will ve lambda
+    def set_mode(self, mode: Mode):  # deconstructors for modes
         self.mode = mode
+        if self.mode == Mode.POLYGON and len(self.point_buffer) > 2:
+            self.model.add_polygon(self.point_buffer)
+            self.point_buffer = []
         self.update_display()
 
     def init_new_model(self):
