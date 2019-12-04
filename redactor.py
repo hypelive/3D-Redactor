@@ -44,18 +44,16 @@ class SceneWindow(QtWidgets.QLabel):
 
     def update_scene_display(self):
         with self.get_painter() as painter:
-            self.drawer.update_scene(painter, RESOLUTION, self.split_coordinates)
-            
+            self.drawer.update_scene(
+                painter, RESOLUTION, self.split_coordinates)
+
             global_coord = (self.parent().model.display_plate_basis[0] * self.last_x +
-                            self.parent().model.display_plate_basis[1] * self.last_y) 
-            self.parent().statusBar().showMessage(f'Mode: {str(self.parent().mode)[5:]}; x={global_coord.x} y={global_coord.y} z={global_coord.z}')
+                            self.parent().model.display_plate_basis[1] * self.last_y)
+            self.parent().statusBar().showMessage(
+                f'Mode: {str(self.parent().mode)[5:]}; x={global_coord.x} y={global_coord.y} z={global_coord.z}')
 
     def get_painter(self):
-        painter = QtGui.QPainter(self.pixmap())
-        painter.setPen(QtGui.QPen(QtGui.QColor(
-            230, 102, 0), 5, QtCore.Qt.SolidLine))
-        painter.setBrush(QtGui.QBrush(QtGui.QColor(230, 102, 30)))
-        return painter
+        return QtGui.QPainter(self.pixmap())
 
     def mousePressEvent(self, event):
         if self.parent().mode == Mode.POINT:
@@ -102,7 +100,7 @@ class SceneWindow(QtWidgets.QLabel):
         self.update_object_to_interact(event)
         if self.object_to_interact and isinstance(self.object_to_interact, Point):
             self.parent().point_buffer.append(self.object_to_interact)
-        
+
     def delete_object(self, event):
         self.update_object_to_interact(event)
         if self.object_to_interact:
@@ -265,15 +263,30 @@ class RedactorWindow(QtWidgets.QMainWindow):
         self.setWindowIcon(icon)
         self.setWindowTitle('Black Box editor')
 
-        new_scene_action = self.new_action('textures/new.png', 'New', self.init_new_model)
-        save_action = self.new_action('textures/save.png', 'Save', self.save_model, 'Ctrl+S')
-        open_action = self.new_action('textures/open.png', 'Open', self.open_model)
-        screen_action = self.new_action('textures/screen.png', 'Scr', self.screenshot)
-        point_action = self.new_action('textures/pt.png', 'Point', lambda _: self.set_mode(Mode.POINT), '1')
-        line_action = self.new_action('textures/ln.png', 'Line', lambda _: self.set_mode(Mode.LINE), '2')
-        polygon_action = self.new_action('textures/plg.png', 'Polygon', lambda _: self.set_mode(Mode.POLYGON), '3')
-        sphere_action = self.new_action('textures/sp.png', 'Sphere', lambda _: self.set_mode(Mode.SPHERE), '4')
-        delete_action = self.new_action('textures/delete.png', 'Delete', lambda _: self.set_mode(Mode.DELETE))
+        new_scene_action = self.new_action(
+            'New', self.init_new_model, 'textures/new.png')
+        save_action = self.new_action(
+            'Save', self.save_model, 'textures/save.png', 'Ctrl+S')
+        open_action = self.new_action(
+            'Open', self.open_model, 'textures/open.png')
+        screen_action = self.new_action(
+            'Scr', self.screenshot, 'textures/screen.png')
+        point_action = self.new_action(
+            'Point', lambda _: self.set_mode(Mode.POINT), 'textures/pt.png', '1')
+        line_action = self.new_action(
+            'Line', lambda _: self.set_mode(Mode.LINE), 'textures/ln.png', '2')
+        polygon_action = self.new_action(
+            'Polygon', lambda _: self.set_mode(Mode.POLYGON), 'textures/plg.png', '3')
+        sphere_action = self.new_action(
+            'Sphere', lambda _: self.set_mode(Mode.SPHERE), 'textures/sp.png', '4')
+        delete_action = self.new_action(
+            'Delete', lambda _: self.set_mode(Mode.DELETE), 'textures/delete.png')
+        point_color_action_red = self.new_action(
+            'Red', lambda _: self.label.drawer.set_style('point color', QtCore.Qt.red))
+        point_color_action_orange = self.new_action(
+            'Orange', lambda _: self.label.drawer.set_style('point color', QtGui.QColor(255, 102, 0)))
+        point_color_action_yellow = self.new_action(
+            'Yellow', lambda _: self.label.drawer.set_style('point color', QtCore.Qt.yellow))
         menubar = self.menuBar()
         menubar.setStyleSheet("""QMenuBar {
          background-color: rgb(220,150,120);
@@ -287,6 +300,25 @@ class RedactorWindow(QtWidgets.QMainWindow):
         fileMenu.addAction(save_action)
         fileMenu.addAction(open_action)
         menubar.addAction(screen_action)
+        settings = menubar.addMenu('Settings')
+        pt_settings = settings.addMenu('Point')
+        pt_settings.addAction(point_color_action_red)
+        pt_settings.addAction(point_color_action_orange)
+        pt_settings.addAction(point_color_action_yellow)
+        ln_settings = settings.addMenu('Line')
+        ln_settings_style = ln_settings.addMenu('Style')  # TO DO
+        ln_settings_width = ln_settings.addMenu('Width')  # TO DO
+        ln_settings_color = ln_settings.addMenu('Color')  # TO DO
+        pg_settings = settings.addMenu('Polygon')
+        pg_settings_border_style = pg_settings.addMenu('Border Style')  # To DO
+        pg_settings_border_color = pg_settings.addMenu('Border Style')  # TO DO
+        pg_settings_style = pg_settings.addMenu('Style')  # TO DO
+        pg_settings_color = pg_settings.addMenu('Color')  # TO DO
+        sp_settings = settings.addMenu('Sphere')
+        sp_settings_border_style = sp_settings.addMenu('Border Style')  # To DO
+        sp_settings_border_color = sp_settings.addMenu('Border Style')  # TO DO
+        sp_settings_style = sp_settings.addMenu('Style')  # TO DO
+        sp_settings_color = sp_settings.addMenu('Color')  # TO DO
         toolbar = QtWidgets.QToolBar(self)
         self.addToolBar(QtCore.Qt.LeftToolBarArea, toolbar)
         toolbar.addAction(point_action)
@@ -299,7 +331,7 @@ class RedactorWindow(QtWidgets.QMainWindow):
         self.label = SceneWindow(self)
         self.setCentralWidget(self.label)
 
-    def new_action(self, icon, name, connect_with, shortcut=None):
+    def new_action(self, name, connect_with, icon=None, shortcut=None):
         action = QtWidgets.QAction(
             QtGui.QIcon(icon), name, self)
         action.triggered.connect(connect_with)

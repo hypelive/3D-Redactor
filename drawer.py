@@ -54,7 +54,11 @@ class Drawer:
             Cylinder: self.paint_cl
         }
 
+    def set_style(self, stylename, param):
+        self.style[stylename] = param
+
     def update_scene(self, painter, resolution, split_coordinates):
+        self.set_painter_params(painter)
         painter.fillRect(
             0, 0, resolution[0], resolution[1], QtGui.QGradient.Preset(self.scene_style_preset))
 
@@ -73,14 +77,23 @@ class Drawer:
                                                   split_coordinates[0],
                                                   display_coord[1] +
                                                   split_coordinates[1])
-            #if self.is_visible(obj): # for perspective need
+            # if self.is_visible(obj): # for perspective need
             self.draw_table[type(obj)](obj, painter)
             self.displayed_objects.append(obj)
 
     def is_visible(self, obj):
         return self.check_to_visible[type(obj)](obj)
 
+    def set_painter_params(self, painter, pen_color=QtGui.QColor(230, 102, 0),
+                           pen_width=5, pen_style=QtCore.Qt.SolidLine,
+                           brush_color=QtGui.QColor(230, 102, 30),
+                           brush_style=QtCore.Qt.SolidPattern):
+        painter.setPen(QtGui.QPen(pen_color, pen_width, pen_style))
+        painter.setBrush(QtGui.QBrush(brush_color, brush_style))
+
     def paint_pt(self, point, painter):
+        self.set_painter_params(painter, pen_color=self.style['point color'],
+                                brush_color=self.style['point color'])
         painter.drawEllipse(self.points_display_table[point][0] -
                             point.WIDTH / 2,
                             self.points_display_table[point][1] -
@@ -88,18 +101,29 @@ class Drawer:
                             point.WIDTH, point.WIDTH)
 
     def paint_ln(self, line, painter):
+        self.set_painter_params(painter, pen_style=self.style['line style'],
+                                pen_width=self.style['line width'],
+                                pen_color=self.style['line color'])
         painter.pen().setWidth(line.WIDTH)
         painter.drawLine(
             *self.points_display_table[line.start],
             *self.points_display_table[line.end])
 
     def paint_pg(self, polygon, painter):
+        self.set_painter_params(painter, pen_style=self.style['polygon border style'],
+                                pen_color=self.style['polygon border color'],
+                                brush_color=self.style['polygon color'],
+                                brush_style=self.style['polygon style'])
         painter.pen().setWidth(polygon.WIDTH)
         painter.drawConvexPolygon(
             *[QtCore.QPointF(*self.points_display_table[point])
               for point in polygon.points])
 
     def paint_sp(self, sphere, painter):
+        self.set_painter_params(painter, pen_style=self.style['sphere border style'],
+                                pen_color=self.style['sphere border color'],
+                                brush_color=self.style['sphere color'],
+                                brush_style=self.style['sphere style'])
         width = 2*sphere.radius
         painter.drawEllipse(self.points_display_table[sphere.point][0] -
                             width / 2,
