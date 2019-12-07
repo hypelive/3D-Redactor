@@ -77,7 +77,7 @@ class Drawer:
                                                   split_coordinates[0],
                                                   display_coord[1] +
                                                   split_coordinates[1])
-            # if self.is_visible(obj): # for perspective need
+            #if self.is_visible(obj): # for perspective need
             self.draw_table[type(obj)](obj, painter)
             self.displayed_objects.append(obj)
 

@@ -9,6 +9,12 @@ class Vector3:
             return Vector3(self.x + other.x,
                            self.y + other.y,
                            self.z + other.z)
+    
+    def __sub__(self, other):
+        if isinstance(other, Vector3):
+            return Vector3(self.x - other.x,
+                           self.y - other.y,
+                           self.z - other.z)
 
     def __mul__(self, other):
         if isinstance(other, Vector3):

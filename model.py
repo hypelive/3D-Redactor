@@ -1,16 +1,20 @@
 from geometry import Vector3, Matrix
 from objects import Point, Line, Polygon, Sphere, Cylinder
 import json
+import numpy as np
 
 
 class Model:
     def __init__(self):
         self.basis = (Vector3(1, 0, 0), Vector3(0, 1, 0), Vector3(0, 0, 1))
         self.origin = Point(0, 0, 0)
-        self.display_plate_basis = [Vector3(0, 1, 0), Vector3(0, 0, 1),
+        self.display_plate_basis = [Vector3(0, 0, 1), Vector3(0, 1, 0),
                                     Vector3(-1, 0, 0)]
-        self.display_plate_origin = Point(0, 0, -1000)
+        self.display_plate_origin = Vector3(0, 0, -5)
+        self.focus = self.display_plate_origin + \
+            (self.display_plate_basis[2] * 3)
         self.objects = []
+        self.is_perspective = False
         self.matrix_of_display = None
         self.update_display_matrix(None)
 
@@ -37,13 +41,32 @@ class Model:
         return (self.matrix_of_display.transpose() *
                 vector).to_tuple()
 
+    def _set_display_basis(self, basis: list):
+        self.display_plate_basis = basis
+        self.update_display_matrix(None)
+
+    def move_focus(self, value: float):
+        self.focus += self.display_plate_basis[2] * value
+        self.update_display_matrix(None)
+
+    def move_display_origin(self, x_value: float, y_value: float):
+        self.display_plate_origin += (self.display_plate_basis[0]*x_value +
+                                      self.display_plate_basis[1]*y_value)
+        self.update_display_matrix(None)
+
     def update_display_matrix(self, ort_matrix: Matrix) -> None:
         if not ort_matrix:
-            a = self.display_plate_basis[0]
-            b = self.display_plate_basis[1]
-            c = self.display_plate_basis[2]
+            if not self.is_perspective:
+                a = self.display_plate_basis[0]
+                b = self.display_plate_basis[1]
+                c = self.display_plate_basis[2]
+            else:
+                a = self.get_display_on_display_plate(self.basis[0])
+                b = self.get_display_on_display_plate(self.basis[1])
+                c = self.get_display_on_display_plate(self.basis[2])
             self.matrix_of_display = Matrix(
                 3, 3, a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z)
+
         else:
             self.display_plate_basis[0] = Vector3(*((ort_matrix *
                                                      self.display_plate_basis[0]).to_tuple()))
@@ -52,7 +75,29 @@ class Model:
             self.display_plate_basis[2] = Vector3(*((ort_matrix *
                                                      self.display_plate_basis[2]).to_tuple()))
             self.update_display_matrix(None)
-    
+
+    def get_display_on_display_plate(self, vector: Vector3) -> Vector3:
+        A = self.display_plate_basis[2].x
+        B = self.display_plate_basis[2].y
+        C = self.display_plate_basis[2].z
+        line_vector = self.focus - vector
+        t = -(A*(vector.x - self.display_plate_origin.x) +
+              B*(vector.y - self.display_plate_origin.y) +
+              C*(vector.z - self.display_plate_origin.z)) / (A*line_vector.x +
+                                                             B*line_vector.y +
+                                                             C*line_vector.z)
+        x = line_vector.x*t + vector.x
+        y = line_vector.y*t + vector.y
+        z = line_vector.z*t + vector.z
+
+        a = np.array([[self.display_plate_basis[0].x, self.display_plate_basis[1].x, self.display_plate_basis[2].x],
+                      [self.display_plate_basis[0].y, self.display_plate_basis[1].y,
+                          self.display_plate_basis[2].y],
+                      [self.display_plate_basis[0].z, self.display_plate_basis[1].z, self.display_plate_basis[2].z]])
+        b = np.array([x, y, z])
+        solve = np.linalg.solve(a, b)
+        return Vector3(solve[0], solve[1], solve[2])
+
     def get_plate_equation_value(self, x, y, z):
         a = self.display_plate_basis[2].x
         b = self.display_plate_basis[2].y
@@ -61,13 +106,8 @@ class Model:
                 b*(y - self.display_plate_origin.y) +
                 c*(z - self.display_plate_origin.z))
 
-
     def save(self, file):
         file.write(str(self))
-
-    def save_j(self, filename: str):
-        with open(filename, 'w', encoding='utf8') as file:
-            file.write(json.dumps(self.__dict__()))
 
     def open(self, file):
         line = next(file)
@@ -101,29 +141,6 @@ class Model:
 
         self.update_display_matrix(None)
 
-    def open_j(self, filename: str):
-        dedictors = {
-            '__Line__': Line.__dedict__,
-            '__Polygon': Polygon.__dedict__
-        }
-        with open(filename, 'r', encoding='utf8') as file:
-            model_dict = json.loads(file.read())
-        if not '__Model__' in model_dict:
-            raise Exception('unknown save file')
-        self.basis = [Vector3(vector['x'], vector['y'], vector['z'])
-                      for vector in model_dict['basis'] if '__Vector3__' in vector]
-        self.origin = Point(
-            model_dict['origin']['x'], model_dict['origin']['y'], model_dict['origin']['z'])
-        self.display_plate_basis = [Vector3(vector['x'], vector['y'], vector['z'])
-                                    for vector in model_dict['display_plate_basis'] if '__Vector3__' in vector]
-        for obj in model_dict['objects']:
-            if '__Point__' in obj:
-                self.objects.append(Point.__dedict__(obj))
-        for obj in model_dict['objects']:
-            for key in dedictors:
-                if key in obj:
-                    self.objects.append(dedictors[key](obj, self.objects))
-
     def __str__(self):  # стиль стилем, конечно, но разве так не лучше?
         str_representation = f'''{str(self.basis[0])} {str(self.basis[1])} {str(self.basis[2])}
 {str(self.origin)}
@@ -132,12 +149,3 @@ class Model:
         for obj in self.objects:
             str_representation += f'{str(obj)}\n'
         return str_representation
-
-    def __dict__(self):
-        return {
-            '__Model__': True,
-            'basis': [vector.__dict__() for vector in self.basis],
-            'origin': self.origin.__dict__(),
-            'display_plate_basis': [vector.__dict__() for vector in self.display_plate_basis],
-            'objects': [obj.__dict__() for obj in self.objects]
-        }
