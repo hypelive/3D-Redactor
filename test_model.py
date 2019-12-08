@@ -81,14 +81,34 @@ class RedactorTests(unittest.TestCase):
         self.assertEqual(model.undisplay_vector(
                          Vector3(2, 3, -1)), (1, 2, 3))
     
-    def test_display_in_perspective(self):
+    def test_display_in_perspective_basis(self):
         model = Model()
-        model._set_display_basis([Vector3(0, 1, 0), Vector3(0, 0, 1),
+        model._set_display_basis([Vector3(0, 0, 1), Vector3(0, 1, 0),
                                     Vector3(-1, 0, 0)])
-
-        z = model.get_display_on_display_plate(model.basis[0])
-        self.assertEqual(z.x, 0)
-        self.assertEqual(z.y, 0)
-        self.assertEqual(z.z, 0)
         model.is_perspective = True
 
+        c = model.get_display_on_display_plate(model.basis[0])
+        self.assertEqual(c.x, 0)
+        self.assertEqual(c.y, 0)
+        self.assertEqual(c.z, 0)
+        
+        a = model.get_display_on_display_plate(model.basis[2])
+        self.assertAlmostEqual(a.x, 0.3, delta=1e-10)
+        self.assertEqual(a.y, 0)
+        self.assertEqual(a.z, 0)
+
+        b = model.get_display_on_display_plate(model.basis[1])
+        self.assertEqual(b.x, 0)
+        self.assertAlmostEqual(b.y, 0.3, delta=1e-10)
+        self.assertEqual(b.z, 0)
+
+    def test_display_in_perspective(self):
+        model = Model()
+        model._set_display_basis([Vector3(0, 0, 1), Vector3(0, 1, 0),
+                                    Vector3(-1, 0, 0)])
+        model.is_perspective = True
+
+        a = model.get_display_on_display_plate(Vector3(0, 1, 1))
+        self.assertAlmostEqual(a.x, 0.3, delta=1e-10)
+        self.assertAlmostEqual(a.y, 0.3, delta=1e-10)
+        self.assertEqual(a.z, 0)

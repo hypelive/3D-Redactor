@@ -10,15 +10,18 @@ class Model:
         self.origin = Point(0, 0, 0)
         self.display_plate_basis = [Vector3(0, 0, 1), Vector3(0, 1, 0),
                                     Vector3(-1, 0, 0)]
-        self.display_plate_origin = Vector3(0, 0, -5)
-        self.focus = self.display_plate_origin + \
+        self.interract = [Vector3(0, 0, 1), Vector3(0, 1, 0),
+                          Vector3(-1, 0, 0)]
+        self.display_plate_origin = Vector3(7, 0, 0)
+        self.focus = self.display_plate_origin - \
             (self.display_plate_basis[2] * 3)
         self.objects = []
-        self.is_perspective = False
+        self.is_perspective = True
         self.matrix_of_display = None
         self.update_display_matrix(None)
 
     def add_point(self, vector: Vector3):
+        vector += self.display_plate_origin
         self.objects.append(Point(vector.x, vector.y, vector.z))
 
     def add_line(self, point1, point2):
@@ -60,10 +63,13 @@ class Model:
                 a = self.display_plate_basis[0]
                 b = self.display_plate_basis[1]
                 c = self.display_plate_basis[2]
-            else:
-                a = self.get_display_on_display_plate(self.basis[0])
-                b = self.get_display_on_display_plate(self.basis[1])
-                c = self.get_display_on_display_plate(self.basis[2])
+            else:  # we dont need to display when no channges
+                a = self.get_display_on_display_plate(self.basis[1])
+                b = self.get_display_on_display_plate(self.basis[2])
+                c = self.get_display_on_display_plate(self.basis[0])
+            self.interract[0] = a
+            self.interract[1] = b
+            self.interract[2] = c
             self.matrix_of_display = Matrix(
                 3, 3, a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z)
 
@@ -74,6 +80,8 @@ class Model:
                                                      self.display_plate_basis[1]).to_tuple()))
             self.display_plate_basis[2] = Vector3(*((ort_matrix *
                                                      self.display_plate_basis[2]).to_tuple()))
+            self.focus = self.display_plate_origin - \
+                (self.display_plate_basis[2] * 3)
             self.update_display_matrix(None)
 
     def get_display_on_display_plate(self, vector: Vector3) -> Vector3:
@@ -86,9 +94,9 @@ class Model:
               C*(vector.z - self.display_plate_origin.z)) / (A*line_vector.x +
                                                              B*line_vector.y +
                                                              C*line_vector.z)
-        x = line_vector.x*t + vector.x
-        y = line_vector.y*t + vector.y
-        z = line_vector.z*t + vector.z
+        x = line_vector.x*t + vector.x - self.display_plate_origin.x
+        y = line_vector.y*t + vector.y - self.display_plate_origin.y
+        z = line_vector.z*t + vector.z - self.display_plate_origin.z
 
         a = np.array([[self.display_plate_basis[0].x, self.display_plate_basis[1].x, self.display_plate_basis[2].x],
                       [self.display_plate_basis[0].y, self.display_plate_basis[1].y,
