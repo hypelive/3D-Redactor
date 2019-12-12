@@ -11,6 +11,7 @@ class Model:
         self.display_plate_basis = [Vector3(0, 0, 1), Vector3(0, 1, 0),
                                     Vector3(-1, 0, 0)]
         self.display_plate_origin = Vector3(1000, 0, 0)
+        self.display_plate_border = [640, 360]
         self.objects = []
         self.is_perspective = False
         self.matrix_of_display = None

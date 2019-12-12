@@ -33,6 +33,7 @@ class SceneWindow(QtWidgets.QLabel):
 
         self.last_x = 0
         self.last_y = 0
+        self.zoom = 1
         self.last_time_clicked = time.time()
         self.forget_object_delay = 0.15
         self.object_to_interact = None
@@ -45,15 +46,22 @@ class SceneWindow(QtWidgets.QLabel):
     def update_scene_display(self):
         with self.get_painter() as painter:
             self.drawer.update_scene(
-                painter, RESOLUTION, self.split_coordinates)
+                painter, RESOLUTION, self.split_coordinates, self.zoom)
 
             global_coord = (self.parent().model.display_plate_basis[0] * self.last_x +
                             self.parent().model.display_plate_basis[1] * self.last_y)
             self.parent().statusBar().showMessage(
-                f'Mode: {str(self.parent().mode)[5:]}; x={global_coord.x} y={global_coord.y} z={global_coord.z}')
+                f'Mode: {str(self.parent().mode)[5:]}; x={global_coord.x} y={global_coord.y} z={global_coord.z}; Zoom: {self.zoom}')
 
     def get_painter(self):
         return QtGui.QPainter(self.pixmap())
+
+    def wheelEvent(self, event):
+        if self.zoom < 0.15:
+            self.zoom = max(self.zoom, self.zoom + event.angleDelta().y()/2880)
+        else:
+            self.zoom += event.angleDelta().y()/2880
+        self.parent().update_display()
 
     def mousePressEvent(self, event):
         if self.parent().mode == Mode.POINT:
@@ -71,20 +79,26 @@ class SceneWindow(QtWidgets.QLabel):
         self.refresh_interaction_variables(event)
         self.parent().update_display()
 
+    def calc_x(self, x):
+        return x / self.zoom
+
+    def calc_y(self, y):
+        return y / self.zoom
+
     def refresh_interaction_variables(self, event):
-        self.last_x = event.x()
-        self.last_y = event.y()
+        self.last_x = self.calc_x(event.x())
+        self.last_y = self.calc_y(event.y())
         self.last_time_clicked = time.time()
 
     def set_point(self, event):
-        self.parent().model.add_point((self.parent().model.display_plate_basis[0] * (event.x() - self.split_coordinates[0])) +
+        self.parent().model.add_point((self.parent().model.display_plate_basis[0] * (self.calc_x(event.x()) - self.split_coordinates[0])) +
                                       (self.parent(
-                                      ).model.display_plate_basis[1] * (event.y() - self.split_coordinates[1])))
+                                      ).model.display_plate_basis[1] * (self.calc_y(event.y()) - self.split_coordinates[1])))
 
     def set_sphere(self, event):
-        self.parent().model.add_sphere((self.parent().model.display_plate_basis[0] * (event.x() - self.split_coordinates[0])) +
+        self.parent().model.add_sphere((self.parent().model.display_plate_basis[0] * (self.calc_x(event.x()) - self.split_coordinates[0])) +
                                        (self.parent(
-                                       ).model.display_plate_basis[1] * (event.y() - self.split_coordinates[1])))
+                                       ).model.display_plate_basis[1] * (self.calc_y(event.y()) - self.split_coordinates[1])))
 
     def choose_line_points(self, event):
         self.update_object_to_interact(event)
@@ -108,8 +122,8 @@ class SceneWindow(QtWidgets.QLabel):
 
     def mouseMoveEvent(self, event: QtGui.QMouseEvent):
         if self.parent().mode == Mode.VIEW:
-            self.split_coordinates[0] += event.x() - self.last_x
-            self.split_coordinates[1] += event.y() - self.last_y
+            self.split_coordinates[0] += self.calc_x(event.x()) - self.last_x
+            self.split_coordinates[1] += self.calc_y(event.y()) - self.last_y
         elif self.parent().mode == Mode.EDIT:
             self.edit_object(event)
         elif self.parent().mode == Mode.RESIZE:
@@ -123,9 +137,9 @@ class SceneWindow(QtWidgets.QLabel):
                 self.forget_object_delay):  # maybe need more
             self.object_to_interact + (
                 self.parent().model.display_plate_basis[0] *
-                (event.x() - self.last_x) +
+                (self.calc_x(event.x()) - self.last_x) +
                 self.parent().model.display_plate_basis[1]
-                * (event.y() - self.last_y))
+                * (self.calc_y(event.y()) - self.last_y))
         else:
             self.update_object_to_interact(event)
 
@@ -366,6 +380,7 @@ class RedactorWindow(QtWidgets.QMainWindow):
         self.update_display()
 
     def init_new_model(self):
+        del(self.model)
         self.model = model.Model()
         self.label.drawer = Drawer(self.model)
         self.update_display()

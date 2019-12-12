@@ -57,7 +57,7 @@ class Drawer:
     def set_style(self, stylename, param):
         self.style[stylename] = param
 
-    def update_scene(self, painter, resolution, split_coordinates):
+    def update_scene(self, painter, resolution, split_coordinates, zoom):
         self.set_painter_params(painter)
         painter.fillRect(
             0, 0, resolution[0], resolution[1], QtGui.QGradient.Preset(self.scene_style_preset))
@@ -66,19 +66,19 @@ class Drawer:
 
         for obj in self.model.objects:
             self.paint_object(
-                obj, split_coordinates, painter)
+                obj, split_coordinates, zoom, painter)
 
-    def paint_object(self, obj, split_coordinates, painter):
+    def paint_object(self, obj, split_coordinates, zoom, painter):
         for obj in self.model.objects:
             if isinstance(obj, Point):
                 display_coord = self.model.display_vector(
                     obj.to_vector3())
-                self.points_display_table[obj] = (display_coord[0] +
-                                                  split_coordinates[0],
-                                                  display_coord[1] +
-                                                  split_coordinates[1])
+                self.points_display_table[obj] = ((display_coord[0] +
+                                                  split_coordinates[0]) * zoom,
+                                                  (display_coord[1] +
+                                                  split_coordinates[1]) * zoom)
             #if self.is_visible(obj): # for perspective need
-            self.draw_table[type(obj)](obj, painter)
+            self.draw_table[type(obj)](obj, painter, zoom)
             self.displayed_objects.append(obj)
 
     def is_visible(self, obj):
@@ -91,7 +91,7 @@ class Drawer:
         painter.setPen(QtGui.QPen(pen_color, pen_width, pen_style))
         painter.setBrush(QtGui.QBrush(brush_color, brush_style))
 
-    def paint_pt(self, point, painter):
+    def paint_pt(self, point, painter, zoom):
         self.set_painter_params(painter, pen_color=self.style['point color'],
                                 brush_color=self.style['point color'])
         painter.drawEllipse(self.points_display_table[point][0] -
@@ -100,7 +100,7 @@ class Drawer:
                             point.WIDTH / 2,
                             point.WIDTH, point.WIDTH)
 
-    def paint_ln(self, line, painter):
+    def paint_ln(self, line, painter, zoom):
         self.set_painter_params(painter, pen_style=self.style['line style'],
                                 pen_width=self.style['line width'],
                                 pen_color=self.style['line color'])
@@ -109,7 +109,7 @@ class Drawer:
             *self.points_display_table[line.start],
             *self.points_display_table[line.end])
 
-    def paint_pg(self, polygon, painter):
+    def paint_pg(self, polygon, painter, zoom):
         self.set_painter_params(painter, pen_style=self.style['polygon border style'],
                                 pen_color=self.style['polygon border color'],
                                 brush_color=self.style['polygon color'],
@@ -119,19 +119,19 @@ class Drawer:
             *[QtCore.QPointF(*self.points_display_table[point])
               for point in polygon.points])
 
-    def paint_sp(self, sphere, painter):
+    def paint_sp(self, sphere, painter, zoom):
         self.set_painter_params(painter, pen_style=self.style['sphere border style'],
                                 pen_color=self.style['sphere border color'],
                                 brush_color=self.style['sphere color'],
                                 brush_style=self.style['sphere style'])
-        width = 2*sphere.radius
+        width = 2*sphere.radius*zoom
         painter.drawEllipse(self.points_display_table[sphere.point][0] -
                             width / 2,
                             self.points_display_table[sphere.point][1] -
                             width / 2,
                             width, width)
 
-    def paint_cl(self, cylinder, painter):
+    def paint_cl(self, cylinder, painter, zoom):
         painter.pen().setWidth(2*cylinder.radius)
         painter.drawLine(
             *self.points_display_table[cylinder.line.start],
