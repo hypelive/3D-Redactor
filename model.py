@@ -1,5 +1,6 @@
 from geometry import Vector3, Matrix
 from objects import Point, Line, Polygon, Sphere, Cylinder
+from serializable import Serializable
 import json
 
 
@@ -124,42 +125,39 @@ class Model:
         file.write(str(self))
 
     def open(self, file):
-        line = next(file)
-        objects = line.split(' ')
-        self.basis = (Vector3.from_string(objects[0]),
-                      Vector3.from_string(objects[1]),
-                      Vector3.from_string(objects[2]))
+        basis = json.loads(next(file))
+        self.basis = [Vector3(None, None, None).initialize(basis[i])
+                      for i in range(len(basis))]
 
-        line = next(file)
-        self.origin = Point.from_string(line)
-
-        line = next(file)
-        objects = line.split(' ')
-        self.display_plate_basis = [Vector3.from_string(objects[0]),
-                                    Vector3.from_string(objects[1]),
-                                    Vector3.from_string(objects[2])]
-
-        destringers = {
-            'pt': Point.from_string,
-            'ln': Line.from_string,
-            'pg': Polygon.from_string,
-            'sp': Sphere.from_string,
-            'cl': Cylinder.from_string
-        }
+        origin = json.loads(next(file))
+        self.origin = Point(None, None, None).initialize(origin)
+       
+        display_plate_basis = json.loads(next(file))
+        self.display_plate_basis = [
+            Vector3(None, None, None).initialize(display_plate_basis[i])
+            for i in range(len(display_plate_basis))]
 
         for line in file:
-            if not line:
-                return
-            obj = destringers[line[0:2]](line, self.objects)
-            self.objects.append(obj)
-
+            obj_dict = json.loads(line)
+            if obj_dict['NAME'] == 'Point':
+                self.objects.append(Point.from_dict(obj_dict))
+            elif obj_dict['NAME'] == 'Line':
+                self.objects.append(Line(None, None).initialize(
+                    obj_dict, self.objects))
+            elif obj_dict['NAME'] == 'Polygon':
+                self.objects.append(Polygon(None).initialize(
+                    obj_dict, self.objects))
+            elif obj_dict['NAME'] == 'Sphere':
+                self.objects.append(Sphere(None, None).initialize(
+                    obj_dict, self.objects))
+        
         self.update_display_matrix(None)
 
     def __str__(self):
-        str_representation = f'''{str(self.basis[0])} {str(self.basis[1])} {str(self.basis[2])}
-{str(self.origin)}
-{str(self.display_plate_basis[0])} {str(self.display_plate_basis[1])} {str(self.display_plate_basis[2])}
+        str_representation = f'''{json.dumps([vector.__dict__() for vector in self.basis])}
+{json.dumps(self.origin.__dict__())}
+{json.dumps([vector.__dict__() for vector in self.display_plate_basis])}
 '''
         for obj in self.objects:
-            str_representation += f'{str(obj)}\n'
+            str_representation += f'{json.dumps(obj.__dict__())}\n'
         return str_representation

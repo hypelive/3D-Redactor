@@ -1,8 +1,13 @@
-class Vector3:
+from serializable import Serializable
+
+class Vector3(Serializable):
+    NAME = 'Vector3'
+
     def __init__(self, x: float, y: float, z: float):
         self.x = x
         self.y = y
         self.z = z
+        super().__init__(['x', 'y', 'z'])
 
     @staticmethod
     def distance(vector1, vector2) -> float:
@@ -39,16 +44,11 @@ class Vector3:
     def to_tuple(self):
         return(self.x, self.y, self.z)
 
-    def __dict__(self):
-        return {
-            '__Vector3__': True,
-            'x': self.x,
-            'y': self.y,
-            'z': self.z
-        }
-
     def __str__(self):
         return f'{float(self.x)},{float(self.y)},{float(self.z)}'
+
+    def extra_initialize(self, objects):
+        pass
 
     @staticmethod
     def from_string(str_representation):
