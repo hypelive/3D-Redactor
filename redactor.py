@@ -16,6 +16,7 @@ class Mode(Enum):
     EDIT = 1
     RESIZE = 2
     DELETE = 8
+    CROSS = 9
     POINT = 3
     LINE = 4
     POLYGON = 5
@@ -48,17 +49,20 @@ class SceneWindow(QtWidgets.QLabel):
             self.drawer.update_scene(
                 painter, RESOLUTION, self.split_coordinates, self.zoom)
 
-            global_coord = (self.parent().model.display_plate_basis[0] * self.last_x +
-                            self.parent().model.display_plate_basis[1] * self.last_y)
+            global_coord = (self.parent().model.display_plate_basis[0] *
+                            self.last_x +
+                            self.parent().model.display_plate_basis[1] *
+                            self.last_y)
             self.parent().statusBar().showMessage(
-                f'Mode: {str(self.parent().mode)[5:]}; x={global_coord.x} y={global_coord.y} z={global_coord.z}; Zoom: {self.zoom}')
+                f'Mode: {str(self.parent().mode)[5:]}; x={global_coord.x} ' +
+                f'y={global_coord.y} z={global_coord.z}; Zoom: {self.zoom}')
 
     def get_painter(self):
         return QtGui.QPainter(self.pixmap())
 
     def wheelEvent(self, event):
         if self.zoom < 0.15:
-            self.zoom = max(self.zoom, self.zoom + event.angleDelta().y()/2880)
+            self.zoom = max(self.zoom, self.zoom+event.angleDelta().y()/2880)
         else:
             self.zoom += event.angleDelta().y()/2880
         self.parent().update_display()
@@ -74,6 +78,8 @@ class SceneWindow(QtWidgets.QLabel):
             self.set_sphere(event)
         elif self.parent().mode == Mode.DELETE:
             self.delete_object(event)
+        elif self.parent().mode == Mode.CROSS:
+            self.choose_cross_object(event)
 
         self.object_to_interact = None
         self.refresh_interaction_variables(event)
@@ -91,34 +97,67 @@ class SceneWindow(QtWidgets.QLabel):
         self.last_time_clicked = time.time()
 
     def set_point(self, event):
-        self.parent().model.add_point((self.parent().model.display_plate_basis[0] * (self.calc_x(event.x()) - self.split_coordinates[0])) +
-                                      (self.parent(
-                                      ).model.display_plate_basis[1] * (self.calc_y(event.y()) - self.split_coordinates[1])))
+        self.parent().model.add_point((self.parent(
+        ).model.display_plate_basis[0] *
+            (self.calc_x(event.x() -
+                         self.split_coordinates[0]))) +
+            (self.parent(
+            ).model.display_plate_basis[1] *
+            (self.calc_y(event.y() -
+                         self.split_coordinates[1]))))
 
     def set_sphere(self, event):
-        self.parent().model.add_sphere((self.parent().model.display_plate_basis[0] * (self.calc_x(event.x()) - self.split_coordinates[0])) +
-                                       (self.parent(
-                                       ).model.display_plate_basis[1] * (self.calc_y(event.y()) - self.split_coordinates[1])))
+        self.parent().model.add_sphere((self.parent(
+        ).model.display_plate_basis[0] *
+            (self.calc_x(event.x() -
+                         self.split_coordinates[0]))) +
+            (self.parent(
+            ).model.display_plate_basis[1] *
+            (self.calc_y(event.y() -
+                         self.split_coordinates[1]))))
 
     def choose_line_points(self, event):
         self.update_object_to_interact(event)
-        if self.object_to_interact and isinstance(self.object_to_interact, Point):
-            self.parent().point_buffer.append(self.object_to_interact)
-        if len(self.parent().point_buffer) == 2:
-            self.parent().model.add_line(self.parent().point_buffer[0],
-                                         self.parent().point_buffer[1])
+        if self.object_to_interact and isinstance(self.object_to_interact,
+                                                  Point):
+            self.parent().buffer.append(self.object_to_interact)
+        if len(self.parent().buffer) == 2:
+            self.parent().model.add_line(self.parent().buffer[0],
+                                         self.parent().buffer[1])
             self.parent().mode = Mode.VIEW
-            self.parent().point_buffer = []
+            self.parent().buffer = []
 
     def choose_polygon_points(self, event):
         self.update_object_to_interact(event)
-        if self.object_to_interact and isinstance(self.object_to_interact, Point):
-            self.parent().point_buffer.append(self.object_to_interact)
+        if self.object_to_interact and isinstance(self.object_to_interact,
+                                                  Point):
+            self.parent().buffer.append(self.object_to_interact)
 
     def delete_object(self, event):
         self.update_object_to_interact(event)
         if self.object_to_interact:
             self.parent().model.objects.remove(self.object_to_interact)
+
+    def choose_cross_object(self, event):
+        self.update_object_to_interact(event)
+        if self.object_to_interact:
+            self.parent().buffer.append(self.object_to_interact)
+        if len(self.parent().buffer) == 2:
+            cross = self.parent().model.get_cross(self.parent().buffer[0],
+                                                  self.parent().buffer[1])
+
+            points = []
+            if not cross:
+                pass
+            else:
+                for vector in cross:
+                    point = Point(vector.x, vector.y, vector.z)
+                    points.append(point)
+                    self.parent().model.add_point(point)
+            if len(cross) >= 2:
+                self.parent().model.add_line(points[0], points[1])
+            self.parent().mode = Mode.VIEW
+            self.parent().buffer = []
 
     def mouseMoveEvent(self, event: QtGui.QMouseEvent):
         if self.parent().mode == Mode.VIEW:
@@ -138,8 +177,8 @@ class SceneWindow(QtWidgets.QLabel):
             self.object_to_interact + (
                 self.parent().model.display_plate_basis[0] *
                 (self.calc_x(event.x()) - self.last_x) +
-                self.parent().model.display_plate_basis[1]
-                * (self.calc_y(event.y()) - self.last_y))
+                self.parent().model.display_plate_basis[1] *
+                (self.calc_y(event.y()) - self.last_y))
         else:
             self.update_object_to_interact(event)
 
@@ -192,12 +231,16 @@ class SceneWindow(QtWidgets.QLabel):
                                  *self.drawer.points_display_table[point])
 
     def get_distance_to_sphere(self, event, sphere):
-        return self.get_distance(event.x(), event.y(),
-                                 *self.drawer.points_display_table[sphere.point])
+        return self.get_distance(
+            event.x(), event.y(),
+            *self.drawer.points_display_table[sphere.point])
 
     def get_distance_to_line(self, event, line):
-        return (self.get_distance_to_point(event, line.start) + self.get_distance_to_point(event, line.end) -
-                self.get_distance(*self.drawer.points_display_table[line.start], *self.drawer.points_display_table[line.end]))
+        return (self.get_distance_to_point(event, line.start) +
+                self.get_distance_to_point(event, line.end) -
+                self.get_distance(
+                    *self.drawer.points_display_table[line.start],
+                    *self.drawer.points_display_table[line.end]))
 
     def is_inside_polygon(self, event, polygon):  # raycast alg
         x = event.x()
@@ -228,7 +271,7 @@ class RedactorWindow(QtWidgets.QMainWindow):
 
         self.model = None
 
-        self.point_buffer = []
+        self.buffer = []
 
         self.drawer = None
 
@@ -237,7 +280,8 @@ class RedactorWindow(QtWidgets.QMainWindow):
             QtCore.Qt.Key_E: Mode.VIEW,
             QtCore.Qt.Key_R: Mode.RESIZE,
             QtCore.Qt.Key_L: Mode.LINE,
-            QtCore.Qt.Key_P: Mode.POLYGON}
+            QtCore.Qt.Key_P: Mode.POLYGON,
+            QtCore.Qt.Key_T: Mode.CROSS}
 
         self.display_axiss = True
 
@@ -286,21 +330,64 @@ class RedactorWindow(QtWidgets.QMainWindow):
         screen_action = self.new_action(
             'Scr', self.screenshot, 'textures/screen.png')
         point_action = self.new_action(
-            'Point', lambda _: self.set_mode(Mode.POINT), 'textures/pt.png', '1')
+            'Point', lambda _: self.set_mode(Mode.POINT),
+            'textures/pt.png', '1')
         line_action = self.new_action(
-            'Line', lambda _: self.set_mode(Mode.LINE), 'textures/ln.png', '2')
+            'Line', lambda _: self.set_mode(Mode.LINE),
+            'textures/ln.png', '2')
         polygon_action = self.new_action(
-            'Polygon', lambda _: self.set_mode(Mode.POLYGON), 'textures/plg.png', '3')
+            'Polygon', lambda _: self.set_mode(Mode.POLYGON),
+            'textures/plg.png', '3')
         sphere_action = self.new_action(
-            'Sphere', lambda _: self.set_mode(Mode.SPHERE), 'textures/sp.png', '4')
+            'Sphere', lambda _: self.set_mode(Mode.SPHERE),
+            'textures/sp.png', '4')
         delete_action = self.new_action(
-            'Delete', lambda _: self.set_mode(Mode.DELETE), 'textures/delete.png')
+            'Delete', lambda _: self.set_mode(Mode.DELETE),
+            'textures/delete.png')
         point_color_action_red = self.new_action(
-            'Red', lambda _: self.label.drawer.set_style('point color', QtCore.Qt.red))
+            'Red', lambda _: (self.label.drawer.set_style(
+                'point color',
+                QtCore.Qt.red),
+                self.update_display()))
         point_color_action_orange = self.new_action(
-            'Orange', lambda _: self.label.drawer.set_style('point color', QtGui.QColor(255, 102, 0)))
+            'Orange', lambda _: (self.label.drawer.set_style(
+                'point color',
+                QtGui.QColor(255, 102, 0)),
+                self.update_display()))
         point_color_action_yellow = self.new_action(
-            'Yellow', lambda _: self.label.drawer.set_style('point color', QtCore.Qt.yellow))
+            'Yellow', lambda _: (self.label.drawer.set_style(
+                'point color',
+                QtCore.Qt.yellow),
+                self.update_display()))
+        line_style_action_solid = self.new_action(
+            'Solid', lambda _: (self.label.drawer.set_style(
+                'line style',
+                QtCore.Qt.SolidLine),
+                self.update_display()))
+        line_style_action_dash = self.new_action(
+            'Dash', lambda _: (self.label.drawer.set_style(
+                'line style',
+                QtCore.Qt.DashLine),
+                self.update_display()))
+        line_style_action_dashdot = self.new_action(
+            'Dash Dot', lambda _: (self.label.drawer.set_style(
+                'line style',
+                QtCore.Qt.DashDotLine),
+                self.update_display()))
+        line_style_action_dashdotdot = self.new_action(
+            'Dash Dot Dot', lambda _: (self.label.drawer.set_style(
+                'line style',
+                QtCore.Qt.DashDotDotLine),
+                self.update_display()))
+        edit_mode = self.new_action(
+            'Edit', lambda _: self.set_mode(Mode.EDIT), shortcut='Q')
+        view_mode = self.new_action(
+            'View', lambda _: self.set_mode(Mode.VIEW), shortcut='E')
+        resize_mode = self.new_action(
+            'Resize', lambda _: self.set_mode(Mode.RESIZE), shortcut='R')
+        cross_mode = self.new_action(
+            'Cross', lambda _: self.set_mode(Mode.CROSS), shortcut='T')
+        # TODO Modes menu
         menubar = self.menuBar()
         menubar.setStyleSheet("""QMenuBar {
          background-color: rgb(220,150,120);
@@ -320,19 +407,28 @@ class RedactorWindow(QtWidgets.QMainWindow):
         pt_settings.addAction(point_color_action_orange)
         pt_settings.addAction(point_color_action_yellow)
         ln_settings = settings.addMenu('Line')
-        ln_settings_style = ln_settings.addMenu('Style')  # TO DO
-        ln_settings_width = ln_settings.addMenu('Width')  # TO DO
-        ln_settings_color = ln_settings.addMenu('Color')  # TO DO
+        ln_settings_style = ln_settings.addMenu('Style')  # TODO
+        ln_settings_style.addAction(line_style_action_solid)
+        ln_settings_style.addAction(line_style_action_dash)
+        ln_settings_style.addAction(line_style_action_dashdot)
+        ln_settings_style.addAction(line_style_action_dashdotdot)
+        ln_settings_width = ln_settings.addMenu('Width')  # TODO
+        ln_settings_color = ln_settings.addMenu('Color')  # TODO
         pg_settings = settings.addMenu('Polygon')
-        pg_settings_border_style = pg_settings.addMenu('Border Style')  # To DO
-        pg_settings_border_color = pg_settings.addMenu('Border Style')  # TO DO
-        pg_settings_style = pg_settings.addMenu('Style')  # TO DO
-        pg_settings_color = pg_settings.addMenu('Color')  # TO DO
+        pg_settings_border_style = pg_settings.addMenu('Border Style')  # ToDO
+        pg_settings_border_color = pg_settings.addMenu('Border Style')  # TODO
+        pg_settings_style = pg_settings.addMenu('Style')  # TODO
+        pg_settings_color = pg_settings.addMenu('Color')  # TODO
         sp_settings = settings.addMenu('Sphere')
-        sp_settings_border_style = sp_settings.addMenu('Border Style')  # To DO
-        sp_settings_border_color = sp_settings.addMenu('Border Style')  # TO DO
-        sp_settings_style = sp_settings.addMenu('Style')  # TO DO
-        sp_settings_color = sp_settings.addMenu('Color')  # TO DO
+        sp_settings_border_style = sp_settings.addMenu('Border Style')  # ToDO
+        sp_settings_border_color = sp_settings.addMenu('Border Style')  # TODO
+        sp_settings_style = sp_settings.addMenu('Style')  # TODO
+        sp_settings_color = sp_settings.addMenu('Color')  # TODO
+        mode_menu = menubar.addMenu('Modes')
+        mode_menu.addAction(edit_mode)
+        mode_menu.addAction(view_mode)
+        mode_menu.addAction(resize_mode)
+        mode_menu.addAction(cross_mode)
         toolbar = QtWidgets.QToolBar(self)
         self.addToolBar(QtCore.Qt.LeftToolBarArea, toolbar)
         toolbar.addAction(point_action)
@@ -362,21 +458,17 @@ class RedactorWindow(QtWidgets.QMainWindow):
             return
         if event.key() == QtCore.Qt.Key_CapsLock:
             self.display_axiss = not self.display_axiss
-        elif event.key() in self.modes:  # if we change when polygon - end pg
-            if self.mode == Mode.POLYGON and len(self.point_buffer) > 2:
-                self.model.add_polygon(self.point_buffer)
-                self.point_buffer = []
-            self.mode = self.modes[event.key()]
-            self.point_buffer = []
+        # elif event.key() in self.modes:  # if we change when polygon
+        #   self.set_mode(self.modes[event.key()])
         elif event.key() in self.rotate:
             self.model.update_display_matrix(self.rotate[event.key()])
         self.update_display()
 
     def set_mode(self, mode: Mode):  # deconstructors for modes
+        if self.mode == Mode.POLYGON and len(self.buffer) > 2:
+            self.model.add_polygon(self.buffer)
+        self.buffer = []
         self.mode = mode
-        if self.mode == Mode.POLYGON and len(self.point_buffer) > 2:
-            self.model.add_polygon(self.point_buffer)
-            self.point_buffer = []
         self.update_display()
 
     def init_new_model(self):

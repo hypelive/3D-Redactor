@@ -8,6 +8,8 @@ class Drawer:
         self.displayed_objects = []  # to hide objects later
         self.points_display_table = {}
 
+        self.style_settings = {}
+
         self.style = {
             'point color': QtGui.QColor(255, 102, 0),
             'line style': QtCore.Qt.SolidLine,
@@ -36,21 +38,26 @@ class Drawer:
         }
 
         self.check_to_visible = {
-            Point: lambda point: model.get_plate_equation_value(point.x,
-                                                                point.y,
-                                                                point.z) >= 0,
-            Line: lambda line: any(model.get_plate_equation_value(line.start.x,
-                                                                  line.start.y,
-                                                                  line.start.z) >= 0,
-                                   model.get_plate_equation_value(line.end.x,
-                                                                  line.end.y,
-                                                                  line.end.z) >= 0),
-            Polygon: lambda polygon: any((model.get_plate_equation_value(point.x,
-                                                                         point.y,
-                                                                         point.z) >= 0 for point in polygon.points)),
-            Sphere: lambda sphere: model.get_plate_equation_value(sphere.point.x,
-                                                                  sphere.point.y,
-                                                                  sphere.point.z) >= 0,
+            Point: lambda point: model.get_plate_equation_value(
+                point.x,
+                point.y,
+                point.z) >= 0,
+            Line: lambda line: any(model.get_plate_equation_value(
+                line.start.x,
+                line.start.y,
+                line.start.z) >= 0,
+                model.get_plate_equation_value(
+                line.end.x,
+                line.end.y,
+                line.end.z) >= 0),
+            Polygon: lambda polygon: any((model.get_plate_equation_value(
+                point.x,
+                point.y,
+                point.z) >= 0 for point in polygon.points)),
+            Sphere: lambda sphere: model.get_plate_equation_value(
+                sphere.point.x,
+                sphere.point.y,
+                sphere.point.z) >= 0,
             Cylinder: self.paint_cl
         }
 
@@ -60,7 +67,8 @@ class Drawer:
     def update_scene(self, painter, resolution, split_coordinates, zoom):
         self.set_painter_params(painter)
         painter.fillRect(
-            0, 0, resolution[0], resolution[1], QtGui.QGradient.Preset(self.scene_style_preset))
+            0, 0, resolution[0], resolution[1],
+            QtGui.QGradient.Preset(self.scene_style_preset))
 
         self.draw_coordinates_system(painter)
 
@@ -73,11 +81,13 @@ class Drawer:
             if isinstance(obj, Point):
                 display_coord = self.model.display_vector(
                     obj.to_vector3())
-                self.points_display_table[obj] = ((display_coord[0] +
-                                                  split_coordinates[0]) * zoom,
-                                                  (display_coord[1] +
-                                                  split_coordinates[1]) * zoom)
-            #if self.is_visible(obj): # for perspective need
+                self.points_display_table[obj] = (display_coord[0] * zoom +
+                                                  split_coordinates[0],
+                                                  display_coord[1] * zoom +
+                                                  split_coordinates[1])
+            # if not obj in self.style_settings:
+            #    self.update_style(obj)
+            # if self.is_visible(obj): # for perspective need
             self.draw_table[type(obj)](obj, painter, zoom)
             self.displayed_objects.append(obj)
 
@@ -110,7 +120,8 @@ class Drawer:
             *self.points_display_table[line.end])
 
     def paint_pg(self, polygon, painter, zoom):
-        self.set_painter_params(painter, pen_style=self.style['polygon border style'],
+        self.set_painter_params(painter,
+                                pen_style=self.style['polygon border style'],
                                 pen_color=self.style['polygon border color'],
                                 brush_color=self.style['polygon color'],
                                 brush_style=self.style['polygon style'])
@@ -120,7 +131,8 @@ class Drawer:
               for point in polygon.points])
 
     def paint_sp(self, sphere, painter, zoom):
-        self.set_painter_params(painter, pen_style=self.style['sphere border style'],
+        self.set_painter_params(painter,
+                                pen_style=self.style['sphere border style'],
                                 pen_color=self.style['sphere border color'],
                                 brush_color=self.style['sphere color'],
                                 brush_style=self.style['sphere style'])

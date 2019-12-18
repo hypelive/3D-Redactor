@@ -4,12 +4,17 @@ class Vector3:
         self.y = y
         self.z = z
 
+    @staticmethod
+    def distance(vector1, vector2) -> float:
+        return ((vector1.x - vector2.x)**2 + (vector1.y - vector2.y)**2 +
+                (vector1.z - vector2.z)**2)**0.5
+
     def __add__(self, other):
         if isinstance(other, Vector3):
             return Vector3(self.x + other.x,
                            self.y + other.y,
                            self.z + other.z)
-    
+
     def __sub__(self, other):
         if isinstance(other, Vector3):
             return Vector3(self.x - other.x,
