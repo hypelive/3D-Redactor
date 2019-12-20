@@ -1,3 +1,5 @@
+from enum import Enum
+
 class Serializable:
     def __init__(self, fields):
         self.fields = fields
@@ -11,6 +13,8 @@ class Serializable:
                 res[field] = attr.__dict__()
             elif isinstance(attr, list):
                 res[field] = [entry.__dict__() for entry in attr]
+            elif isinstance(attr, Enum):
+                res[field] = attr.value
             else:
                 res[field] = attr
         return res

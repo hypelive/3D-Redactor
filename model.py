@@ -1,6 +1,7 @@
 from geometry import Vector3, Matrix
 from objects import Point, Line, Polygon, Sphere, Cylinder
 from serializable import Serializable
+from color import Color
 import json
 
 
@@ -17,23 +18,41 @@ class Model:
         self.matrix_of_display = None
         self.update_display_matrix(None)
 
-    def add_point(self, vector):
+    def search_or_add(self, obj, *args):
+        if isinstance(obj, Point):
+            for model_obj in self.objects:
+                if isinstance(model_obj, Point) and\
+                        obj.almost_equal(model_obj):
+                    return model_obj
+            self.add_point(obj)
+        
+        return obj
+
+    def add_point(self, vector, color= Color.ORANGE_LIGHT):
         if isinstance(vector, Vector3):
-            self.objects.append(Point(vector.x, vector.y, vector.z))
+            self.objects.append(Point(vector.x, vector.y, vector.z,
+                                      color=color))
         elif isinstance(vector, Point):
             self.objects.append(vector)
 
-    def add_line(self, point1, point2):
-        self.objects.append(Line(point1, point2))
+    def add_line(self, point1, point2, color, style):
+        self.objects.append(Line(point1, point2, color=color, style=style))
 
-    def add_polygon(self, points):  # for variable count of points
-        self.objects.append(Polygon(points))
+    def add_polygon(self, points, border_color, border_style,
+                    color, style):  # for variable count of points
+        self.objects.append(Polygon(points,
+                                    border_color=border_color,
+                                    border_style=border_style,
+                                    color=color, style=style))
 
-    def add_sphere(self, vector: Vector3):
+    def add_sphere(self, vector: Vector3, border_color, border_style,
+                   color, style):
         point = Point(vector.x, vector.y, vector.z)
         point.WIDTH = 0
         self.objects.append(point)
-        self.objects.append(Sphere(point))
+        self.objects.append(Sphere(point, border_color=border_color,
+                                   border_style=border_style,
+                                   color=color, style=style))
 
     def display_vector(self, vector: Vector3) -> tuple:
         return (self.matrix_of_display *
@@ -90,15 +109,15 @@ class Model:
     def get_line_poly_cross(self, line, polygon):
         normal_vector = polygon.get_normal_vector()
         guide_vector = line.get_guide_vector()
-        try:
-            t = (-(normal_vector.x*(line.start.x - polygon.points[0].x) +
-                   normal_vector.y*(line.start.y - polygon.points[0].y) +
-                   normal_vector.z*(line.start.z - polygon.points[0].z)) /
-                 (normal_vector.x*guide_vector.x +
-                  normal_vector.y*guide_vector.y +
-                  normal_vector.z*guide_vector.z))
-        except ZeroDivisionError:
+        devider = (normal_vector.x*guide_vector.x +
+                   normal_vector.y*guide_vector.y +
+                   normal_vector.z*guide_vector.z)
+        if abs(devider) < 1e-4:
             return None
+        t = (-(normal_vector.x*(line.start.x - polygon.points[0].x) +
+               normal_vector.y*(line.start.y - polygon.points[0].y) +
+               normal_vector.z*(line.start.z - polygon.points[0].z)) /
+             devider)
         x = guide_vector.x*t + line.start.x
         y = guide_vector.y*t + line.start.y
         z = guide_vector.z*t + line.start.z
@@ -116,7 +135,7 @@ class Model:
         buffer = []
         for line in poly1.get_surface():
             cross = self.get_line_poly_cross(line, poly2)
-            if line.is_inside_line(cross[0]):
+            if cross and line.is_inside_line(cross[0]):
                 buffer.append(cross[0])
 
         return buffer
@@ -131,7 +150,7 @@ class Model:
 
         origin = json.loads(next(file))
         self.origin = Point(None, None, None).initialize(origin)
-       
+
         display_plate_basis = json.loads(next(file))
         self.display_plate_basis = [
             Vector3(None, None, None).initialize(display_plate_basis[i])
@@ -150,7 +169,7 @@ class Model:
             elif obj_dict['NAME'] == 'Sphere':
                 self.objects.append(Sphere(None, None).initialize(
                     obj_dict, self.objects))
-        
+
         self.update_display_matrix(None)
 
     def __str__(self):

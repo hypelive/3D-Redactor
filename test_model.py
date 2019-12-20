@@ -42,24 +42,24 @@ class RedactorTests(unittest.TestCase):
                                            math.sin(rotate_angle),
                                            math.cos(rotate_angle)))
 
-        self.assertTrue(
-            math.fabs(model.matrix_of_display.transpose()[0][0]) < 1e-15)
-        self.assertTrue(
-            math.fabs(model.matrix_of_display.transpose()[0][1]) < 1e-15)
-        self.assertTrue(
-            math.fabs(model.matrix_of_display.transpose()[0][2] + 1) < 1e-15)
-        self.assertTrue(
-            math.fabs(model.matrix_of_display.transpose()[1][0]) < 1e-15)
-        self.assertTrue(
-            math.fabs(model.matrix_of_display.transpose()[1][1] + 1) < 1e-15)
-        self.assertTrue(
-            math.fabs(model.matrix_of_display.transpose()[1][2]) < 1e-15)
-        self.assertTrue(
-            math.fabs(model.matrix_of_display.transpose()[2][0] - 1) < 1e-15)
-        self.assertTrue(
-            math.fabs(model.matrix_of_display.transpose()[2][1]) < 1e-15)
-        self.assertTrue(
-            math.fabs(model.matrix_of_display.transpose()[2][2]) < 1e-15)
+        self.assertAlmostEqual(model.matrix_of_display.transpose()[0][0],
+                               0.0, delta=1e-15)
+        self.assertAlmostEqual(model.matrix_of_display.transpose()[0][1],
+                               0.0, delta=1e-15)
+        self.assertAlmostEqual(model.matrix_of_display.transpose()[0][2],
+                               -1.0, delta=1e-15)
+        self.assertAlmostEqual(model.matrix_of_display.transpose()[1][0],
+                               0.0, delta=1e-15)
+        self.assertAlmostEqual(model.matrix_of_display.transpose()[1][1],
+                               -1.0, delta=1e-15)
+        self.assertAlmostEqual(model.matrix_of_display.transpose()[1][2],
+                               0.0, delta=1e-15)
+        self.assertAlmostEqual(model.matrix_of_display.transpose()[2][0],
+                               1.0, delta=1e-15)
+        self.assertAlmostEqual(model.matrix_of_display.transpose()[2][1],
+                               0.0, delta=1e-15)
+        self.assertAlmostEqual(0, model.matrix_of_display.transpose()[2][2],
+                               delta=1e-15)
 
     def test_display_model(self):
         model = Model()
@@ -90,7 +90,7 @@ class RedactorTests(unittest.TestCase):
         self.assertEqual(model.undisplay_vector(
                          Vector3(2, 3, -1)), (1, 2, 3))
 
-    @unittest.skip
+    @unittest.skip('for perspective')
     def test_display_in_perspective_basis(self):
         model = Model()
         model.is_perspective = True
@@ -112,7 +112,7 @@ class RedactorTests(unittest.TestCase):
         self.assertAlmostEqual(b.y, 0.3, delta=1e-10)
         self.assertEqual(b.z, 0)
 
-    @unittest.skip
+    @unittest.skip('for perspective')
     def test_display_in_perspective(self):
         model = Model()
         model.is_perspective = True
@@ -124,7 +124,7 @@ class RedactorTests(unittest.TestCase):
         self.assertAlmostEqual(a.y, 0.3, delta=1e-10)
         self.assertEqual(a.z, 0)
 
-    @unittest.skip
+    @unittest.skip('for perspective')
     def test_display_with_matrix(self):
         model = Model()
         model.is_perspective = True

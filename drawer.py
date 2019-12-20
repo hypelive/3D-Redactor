@@ -1,6 +1,28 @@
 from objects import Point, Line, Polygon, Sphere, Cylinder
 from PyQt5 import QtGui, QtWidgets, QtCore
+from color import Color
+from borderStyle import BorderStyle
+from surfaceStyle import SurfaceStyle
 
+COLORS = {
+    Color.RED: QtCore.Qt.red,
+    Color.ORANGE_LIGHT: QtGui.QColor(255, 102, 0),
+    Color.ORANGE_DARK: QtGui.QColor(230, 102, 30),
+    Color.YELLOW: QtCore.Qt.yellow
+}
+
+BORDER_STYLES = {
+    BorderStyle.SOLID: QtCore.Qt.SolidLine,
+    BorderStyle.DASH: QtCore.Qt.DashLine,
+    BorderStyle.DASH_DOT: QtCore.Qt.DashDotLine,
+    BorderStyle.DASH_DOT_DOT: QtCore.Qt.DashDotDotLine
+}
+
+SURFACE_STYLES = {
+    SurfaceStyle.SOLID: QtCore.Qt.SolidPattern,
+    SurfaceStyle.DENSE: QtCore.Qt.Dense1Pattern,
+    SurfaceStyle.DIAGCROSS: QtCore.Qt.DiagCrossPattern
+}
 
 class Drawer:
     def __init__(self, model):
@@ -10,20 +32,17 @@ class Drawer:
 
         self.style_settings = {}
 
-        self.style = {
-            'point color': QtGui.QColor(255, 102, 0),
-            'line style': QtCore.Qt.SolidLine,
-            'line width': 5,
-            'line color': QtGui.QColor(255, 102, 0),
-            'polygon border style': QtCore.Qt.SolidLine,
-            'polygon border color': QtGui.QColor(255, 102, 0),
-            'polygon style': QtCore.Qt.SolidPattern,
-            'polygon color': QtGui.QColor(230, 102, 30),
-            'sphere border style': QtCore.Qt.SolidLine,
-            'sphere border color': QtGui.QColor(255, 102, 0),
-            'sphere style': QtCore.Qt.SolidPattern,
-            'sphere color': QtGui.QColor(230, 102, 30)
-        }
+        self.point_color = Color.ORANGE_LIGHT
+        self.line_color = Color.ORANGE_LIGHT
+        self.line_style = BorderStyle.SOLID
+        self.polygon_border_color = Color.ORANGE_LIGHT
+        self.polygon_border_style = BorderStyle.SOLID
+        self.polygon_color = Color.ORANGE_DARK
+        self.polygon_style = SurfaceStyle.SOLID
+        self.sphere_border_color = Color.ORANGE_LIGHT
+        self.sphere_border_style = BorderStyle.SOLID
+        self.sphere_color = Color.ORANGE_DARK
+        self.sphere_style = SurfaceStyle.SOLID
 
         self.scene_style_preset = 81
         self.axiss_size = 50
@@ -62,7 +81,8 @@ class Drawer:
         }
 
     def set_style(self, stylename, param):
-        self.style[stylename] = param
+        #self.style[stylename] = param
+        pass
 
     def update_scene(self, painter, resolution, split_coordinates, zoom):
         self.set_painter_params(painter)
@@ -102,8 +122,8 @@ class Drawer:
         painter.setBrush(QtGui.QBrush(brush_color, brush_style))
 
     def paint_pt(self, point, painter, zoom):
-        self.set_painter_params(painter, pen_color=self.style['point color'],
-                                brush_color=self.style['point color'])
+        self.set_painter_params(painter, pen_color=COLORS[point.color],
+                                brush_color=COLORS[point.color])
         painter.drawEllipse(self.points_display_table[point][0] -
                             point.WIDTH / 2,
                             self.points_display_table[point][1] -
@@ -111,9 +131,8 @@ class Drawer:
                             point.WIDTH, point.WIDTH)
 
     def paint_ln(self, line, painter, zoom):
-        self.set_painter_params(painter, pen_style=self.style['line style'],
-                                pen_width=self.style['line width'],
-                                pen_color=self.style['line color'])
+        self.set_painter_params(painter, pen_style=BORDER_STYLES[line.style],
+                                pen_color=COLORS[line.color])
         painter.pen().setWidth(line.WIDTH)
         painter.drawLine(
             *self.points_display_table[line.start],
@@ -121,10 +140,10 @@ class Drawer:
 
     def paint_pg(self, polygon, painter, zoom):
         self.set_painter_params(painter,
-                                pen_style=self.style['polygon border style'],
-                                pen_color=self.style['polygon border color'],
-                                brush_color=self.style['polygon color'],
-                                brush_style=self.style['polygon style'])
+                                pen_style=BORDER_STYLES[polygon.border_style],
+                                pen_color=COLORS[polygon.border_color],
+                                brush_style=SURFACE_STYLES[polygon.style],
+                                brush_color=COLORS[polygon.color])
         painter.pen().setWidth(polygon.WIDTH)
         painter.drawConvexPolygon(
             *[QtCore.QPointF(*self.points_display_table[point])
@@ -132,10 +151,10 @@ class Drawer:
 
     def paint_sp(self, sphere, painter, zoom):
         self.set_painter_params(painter,
-                                pen_style=self.style['sphere border style'],
-                                pen_color=self.style['sphere border color'],
-                                brush_color=self.style['sphere color'],
-                                brush_style=self.style['sphere style'])
+                                pen_style=BORDER_STYLES[sphere.border_style],
+                                pen_color=COLORS[sphere.border_color],
+                                brush_color=COLORS[sphere.color],
+                                brush_style=SURFACE_STYLES[sphere.style])
         width = 2*sphere.radius*zoom
         painter.drawEllipse(self.points_display_table[sphere.point][0] -
                             width / 2,

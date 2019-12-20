@@ -1,6 +1,9 @@
 from geometry import Vector3
 from serializable import Serializable
 import json
+from color import Color
+from borderStyle import BorderStyle
+from surfaceStyle import SurfaceStyle
 
 
 class Point(Serializable):
@@ -8,11 +11,13 @@ class Point(Serializable):
     RESIZABLE = False
     NAME = 'Point'
 
-    def __init__(self, x: float, y: float, z: float):
+    def __init__(self, x: float, y: float, z: float,
+                 color=Color.ORANGE_LIGHT):
         self.x = x
         self.y = y
         self.z = z
-        super().__init__(['x', 'y', 'z'])
+        self.color = color
+        super().__init__(['x', 'y', 'z', 'color'])
 
     def __add__(self, other):
         if isinstance(other, Vector3):
@@ -27,7 +32,15 @@ class Point(Serializable):
         return f'pt,{float(self.x)},{float(self.y)},{float(self.z)}'
 
     def extra_initialize(self, objects):
-        pass
+        self.color = Color(self.color)
+
+    def set_style(self, drawer):
+        self.color = drawer.point_color
+
+    def almost_equal(self, point):
+        return abs(self.x - point.x) < 1e-5 and\
+            abs(self.y - point.y) < 1e-5 and\
+            abs(self.z - point.z) < 1e-5
 
     @staticmethod
     def from_string(str_representation, objects=None):
@@ -47,10 +60,13 @@ class Line(Serializable):
     RESIZABLE = False
     NAME = 'Line'
 
-    def __init__(self, start: Point, end: Point):
+    def __init__(self, start: Point, end: Point,
+                 color=Color.ORANGE_LIGHT, style=BorderStyle.SOLID):
         self.start = start
         self.end = end
-        super().__init__(['start', 'end'])
+        self.color = color
+        self.style = style
+        super().__init__(['start', 'end', 'color', 'style'])
 
     def get_guide_vector(self):
         return Vector3(self.end.x - self.start.x,
@@ -80,6 +96,9 @@ class Line(Serializable):
         self.start = None
         self.end = None
 
+        self.color = Color(self.color)
+        self.style = BorderStyle(self.style)
+
         for obj in objects:
             if self.start and self.end:
                 return
@@ -87,6 +106,10 @@ class Line(Serializable):
                 self.start = obj
             if not self.end and str(end) == str(obj):
                 self.end = obj
+
+    def set_style(self, drawer):
+        self.color = drawer.line_color
+        self.style = drawer.line_style
 
     @staticmethod
     def from_string(str_representation: str, objects):
@@ -104,10 +127,17 @@ class Polygon(Serializable):
     RESIZABLE = False
     NAME = 'Polygon'
 
-    def __init__(self, points):
+    def __init__(self, points,
+                 color=Color.ORANGE_DARK, style=SurfaceStyle.SOLID,
+                 border_color=Color.ORANGE_LIGHT, border_style=BorderStyle.SOLID):
         if points:
             self.points = [point for point in points]
-        super().__init__(['points'])
+        self.color = color
+        self.style = style
+        self.border_color = border_color
+        self.border_style = border_style
+        super().__init__(['points', 'color',
+                          'border_color', 'style', 'border_style'])
 
     def get_normal_vector(self):
         return (Vector3(self.points[1].x - self.points[0].x,
@@ -137,12 +167,23 @@ class Polygon(Serializable):
 
         self.points = [None for _ in range(len(self.points))]
 
+        self.color = Color(self.color)
+        self.style = SurfaceStyle(self.style)
+        self.border_color = Color(self.border_color)
+        self.border_style = BorderStyle(self.border_style)
+
         for obj in objects:
             if all(self.points):
                 return
             for i in range(len(self.points)):
                 if not self.points[i] and str(points[i]) == str(obj):
                     self.points[i] = obj
+
+    def set_style(self, drawer):
+        self.color = drawer.polygon_color
+        self.style = drawer.polygon_style
+        self.border_color = drawer.polygon_border_color
+        self.border_style = drawer.polygon_border_style
 
     @staticmethod
     def from_string(str_representation, objects):
@@ -162,10 +203,17 @@ class Sphere(Serializable):
     RESIZABLE = True
     NAME = 'Sphere'
 
-    def __init__(self, point: Point, radius=20.0):
+    def __init__(self, point: Point, radius=20.0,
+                 color=Color.ORANGE_DARK, style=SurfaceStyle.SOLID,
+                 border_color=Color.ORANGE_LIGHT, border_style=BorderStyle.SOLID):
         self.point = point
         self.radius = radius
-        super().__init__(['point', 'radius'])
+        self.color = color
+        self.style = style
+        self.border_color = border_color
+        self.border_style = border_style
+        super().__init__(['point', 'radius', 'color',
+                          'border_color', 'style', 'border_style'])
 
     def __add__(self, other):
         if isinstance(other, Vector3):
@@ -189,11 +237,22 @@ class Sphere(Serializable):
 
         self.point = None
 
+        self.color = Color(self.color)
+        self.style = SurfaceStyle(self.style)
+        self.border_color = Color(self.border_color)
+        self.border_style = BorderStyle(self.border_style)
+
         for obj in objects:
             if self.point:
                 return
             if not self.point and str(point) == str(obj):
                 self.point = obj
+
+    def set_style(self, drawer):
+        self.color = drawer.sphere_color
+        self.style = drawer.sphere_style
+        self.border_color = drawer.sphere_border_color
+        self.border_style = drawer.sphere_border_style
 
 
 class Cylinder(Serializable):

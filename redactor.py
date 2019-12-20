@@ -7,6 +7,11 @@ from objects import Point, Line, Polygon, Sphere, Cylinder
 from drawer import Drawer
 import math
 from enum import Enum
+from color import Color
+from borderStyle import BorderStyle
+from surfaceStyle import SurfaceStyle
+import asyncio
+
 
 RESOLUTION = (1280, 720)
 
@@ -17,6 +22,7 @@ class Mode(Enum):
     RESIZE = 2
     DELETE = 8
     CROSS = 9
+    STYLE = 10
     POINT = 3
     LINE = 4
     POLYGON = 5
@@ -44,18 +50,17 @@ class SceneWindow(QtWidgets.QLabel):
         self.drawer = None
         self.style_preset = 81
 
+        self.startTimer(20)
+
+    def timerEvent(self, event):
+        self.update_statusbar()
+
     def update_scene_display(self):
         with self.get_painter() as painter:
             self.drawer.update_scene(
                 painter, RESOLUTION, self.split_coordinates, self.zoom)
 
-            global_coord = (self.parent().model.display_plate_basis[0] *
-                            self.last_x +
-                            self.parent().model.display_plate_basis[1] *
-                            self.last_y)
-            self.parent().statusBar().showMessage(
-                f'Mode: {str(self.parent().mode)[5:]}; x={global_coord.x} ' +
-                f'y={global_coord.y} z={global_coord.z}; Zoom: {self.zoom}')
+        self.update_statusbar()
 
     def get_painter(self):
         return QtGui.QPainter(self.pixmap())
@@ -63,6 +68,8 @@ class SceneWindow(QtWidgets.QLabel):
     def wheelEvent(self, event):
         if self.zoom < 0.15:
             self.zoom = max(self.zoom, self.zoom+event.angleDelta().y()/2880)
+        elif self.zoom > 10:
+            self.zoom = min(self.zoom, self.zoom+event.angleDelta().y()/2880)
         else:
             self.zoom += event.angleDelta().y()/2880
         self.parent().update_display()
@@ -80,6 +87,8 @@ class SceneWindow(QtWidgets.QLabel):
             self.delete_object(event)
         elif self.parent().mode == Mode.CROSS:
             self.choose_cross_object(event)
+        elif self.parent().mode == Mode.STYLE:
+            self.set_current_style_to_object(event)
 
         self.object_to_interact = None
         self.refresh_interaction_variables(event)
@@ -104,7 +113,8 @@ class SceneWindow(QtWidgets.QLabel):
             (self.parent(
             ).model.display_plate_basis[1] *
             (self.calc_y(event.y() -
-                         self.split_coordinates[1]))))
+                         self.split_coordinates[1]))),
+            self.drawer.point_color)
 
     def set_sphere(self, event):
         self.parent().model.add_sphere((self.parent(
@@ -114,7 +124,11 @@ class SceneWindow(QtWidgets.QLabel):
             (self.parent(
             ).model.display_plate_basis[1] *
             (self.calc_y(event.y() -
-                         self.split_coordinates[1]))))
+                         self.split_coordinates[1]))),
+            self.drawer.sphere_border_color,
+            self.drawer.sphere_border_style,
+            self.drawer.sphere_color,
+            self.drawer.sphere_style)
 
     def choose_line_points(self, event):
         self.update_object_to_interact(event)
@@ -123,8 +137,9 @@ class SceneWindow(QtWidgets.QLabel):
             self.parent().buffer.append(self.object_to_interact)
         if len(self.parent().buffer) == 2:
             self.parent().model.add_line(self.parent().buffer[0],
-                                         self.parent().buffer[1])
-            self.parent().mode = Mode.VIEW
+                                         self.parent().buffer[1],
+                                         self.drawer.line_color,
+                                         self.drawer.line_style)
             self.parent().buffer = []
 
     def choose_polygon_points(self, event):
@@ -147,17 +162,22 @@ class SceneWindow(QtWidgets.QLabel):
                                                   self.parent().buffer[1])
 
             points = []
-            if not cross:
-                pass
-            else:
-                for vector in cross:
-                    point = Point(vector.x, vector.y, vector.z)
-                    points.append(point)
-                    self.parent().model.add_point(point)
+            for vector in cross:
+                point = self.parent().model.search_or_add(
+                    Point(vector.x, vector.y, vector.z,
+                          self.drawer.point_color))
+                points.append(point)
             if len(cross) >= 2:
-                self.parent().model.add_line(points[0], points[1])
+                self.parent().model.add_line(points[0], points[1],
+                                             self.drawer.line_color,
+                                             self.drawer.line_style)
             self.parent().mode = Mode.VIEW
             self.parent().buffer = []
+
+    def set_current_style_to_object(self, event):
+        self.update_object_to_interact(event)
+        if self.object_to_interact:
+            self.object_to_interact.set_style(self.drawer)
 
     def mouseMoveEvent(self, event: QtGui.QMouseEvent):
         if self.parent().mode == Mode.VIEW:
@@ -170,6 +190,16 @@ class SceneWindow(QtWidgets.QLabel):
 
         self.refresh_interaction_variables(event)
         self.parent().update_display()
+
+    def update_statusbar(self):
+        pos = QtGui.QCursor.pos()
+        global_coord = (self.parent().model.display_plate_basis[0] *
+                        (self.calc_x(pos.x()) - self.split_coordinates[0]) +
+                        self.parent().model.display_plate_basis[1] *
+                        (self.calc_y(pos.y()) - self.split_coordinates[1]))
+        self.parent().statusBar().showMessage(
+            f'Mode: {str(self.parent().mode)[5:]}; x={round(global_coord.x, 1)} ' +
+            f'y={round(global_coord.y, 1)} z={round(global_coord.z, 1)}; Zoom: {round(self.zoom, 2)}')
 
     def edit_object(self, event):
         if (self.object_to_interact and time.time() - self.last_time_clicked <
@@ -247,20 +277,18 @@ class SceneWindow(QtWidgets.QLabel):
         y = event.y()
 
         is_inside = False
-        i = 0
-        j = len(polygon.points) - 1
-        while i < len(polygon.points):
-            xi = self.drawer.points_display_table[polygon.points[i]][0]
-            yi = self.drawer.points_display_table[polygon.points[i]][1]
-            xj = self.drawer.points_display_table[polygon.points[j]][0]
-            yj = self.drawer.points_display_table[polygon.points[j]][1]
+        last_point = polygon.points[len(polygon.points) - 1]
+        for point in polygon.points:
+            xi = self.drawer.points_display_table[point][0]
+            yi = self.drawer.points_display_table[point][1]
+            xj = self.drawer.points_display_table[last_point][0]
+            yj = self.drawer.points_display_table[last_point][1]
 
             intersect = ((yi > y) != (yj > y)) and (
                 x < (xj - xi) * (y - yi) / (yj - yi) + xi)
-            if (intersect):
+            if intersect:
                 is_inside = not is_inside
-            j = i
-            i += 1
+            last_point = point
 
         return is_inside
 
@@ -268,7 +296,6 @@ class SceneWindow(QtWidgets.QLabel):
 class RedactorWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
-
         self.model = None
 
         self.buffer = []
@@ -287,25 +314,29 @@ class RedactorWindow(QtWidgets.QMainWindow):
 
         rotate_angle = math.pi / 90
         self.rotate = {
-            QtCore.Qt.Key_D: Matrix(3, 3, math.cos(rotate_angle),
+            QtCore.Qt.Key_W: Matrix(3, 3, math.cos(rotate_angle),
                                     -math.sin(rotate_angle), 0,
                                     math.sin(rotate_angle),
                                     math.cos(rotate_angle),
                                     0, 0, 0, 1),
-            QtCore.Qt.Key_W: Matrix(3, 3, 1, 0, 0, 0,
+            QtCore.Qt.Key_R: Matrix(3, 3, 1, 0, 0, 0,
                                     math.cos(rotate_angle),
                                     -math.sin(rotate_angle), 0,
                                     math.sin(rotate_angle),
                                     math.cos(rotate_angle)),
-            QtCore.Qt.Key_A: Matrix(3, 3, math.cos(-rotate_angle),
+            QtCore.Qt.Key_S: Matrix(3, 3, math.cos(-rotate_angle),
                                     -math.sin(-rotate_angle), 0,
                                     math.sin(-rotate_angle),
                                     math.cos(-rotate_angle),
                                     0, 0, 0, 1),
-            QtCore.Qt.Key_S: Matrix(3, 3, 1, 0, 0, 0,
-                                    math.cos(-rotate_angle),
+            QtCore.Qt.Key_A: Matrix(3, 3, math.cos(rotate_angle), 0,
+                                    math.sin(rotate_angle), 0, 1, 0,
+                                    -math.sin(rotate_angle), 0,
+                                    math.cos(rotate_angle)),
+
+            QtCore.Qt.Key_D: Matrix(3, 3, math.cos(-rotate_angle), 0,
+                                    math.sin(-rotate_angle), 0, 1, 0,
                                     -math.sin(-rotate_angle), 0,
-                                    math.sin(-rotate_angle),
                                     math.cos(-rotate_angle))
         }
 
@@ -345,48 +376,128 @@ class RedactorWindow(QtWidgets.QMainWindow):
             'Delete', lambda _: self.set_mode(Mode.DELETE),
             'textures/delete.png')
         point_color_action_red = self.new_action(
-            'Red', lambda _: (self.label.drawer.set_style(
-                'point color',
-                QtCore.Qt.red),
-                self.update_display()))
+            'Red', lambda _: setattr(self.label.drawer,
+                                     'point_color', Color.RED))
         point_color_action_orange = self.new_action(
-            'Orange', lambda _: (self.label.drawer.set_style(
-                'point color',
-                QtGui.QColor(255, 102, 0)),
-                self.update_display()))
+            'Orange', lambda _: setattr(self.label.drawer,
+                                        'point_color', Color.ORANGE_LIGHT))
         point_color_action_yellow = self.new_action(
-            'Yellow', lambda _: (self.label.drawer.set_style(
-                'point color',
-                QtCore.Qt.yellow),
-                self.update_display()))
+            'Yellow', lambda _: setattr(self.label.drawer,
+                                        'point_color', Color.YELLOW))
         line_style_action_solid = self.new_action(
-            'Solid', lambda _: (self.label.drawer.set_style(
-                'line style',
-                QtCore.Qt.SolidLine),
-                self.update_display()))
+            'Solid', lambda _: setattr(self.label.drawer,
+                                       'line_style', BorderStyle.SOLID))
         line_style_action_dash = self.new_action(
-            'Dash', lambda _: (self.label.drawer.set_style(
-                'line style',
-                QtCore.Qt.DashLine),
-                self.update_display()))
+            'Dash', lambda _: setattr(self.label.drawer,
+                                      'line_style', BorderStyle.DASH))
         line_style_action_dashdot = self.new_action(
-            'Dash Dot', lambda _: (self.label.drawer.set_style(
-                'line style',
-                QtCore.Qt.DashDotLine),
-                self.update_display()))
+            'Dash Dot', lambda _: setattr(self.label.drawer,
+                                          'line_style', BorderStyle.DASH_DOT))
         line_style_action_dashdotdot = self.new_action(
-            'Dash Dot Dot', lambda _: (self.label.drawer.set_style(
-                'line style',
-                QtCore.Qt.DashDotDotLine),
-                self.update_display()))
+            'Dash Dot Dot', lambda _: setattr(self.label.drawer,
+                                              'line_style',
+                                              BorderStyle.DASH_DOT_DOT))
+        line_color_action_red = self.new_action(
+            'Red', lambda _: setattr(self.label.drawer,
+                                     'line_color', Color.RED))
+        line_color_action_orange = self.new_action(
+            'Orange', lambda _: setattr(self.label.drawer,
+                                        'line_color', Color.ORANGE_LIGHT))
+        line_color_action_yellow = self.new_action(
+            'Yellow', lambda _: setattr(self.label.drawer,
+                                        'line_color', Color.YELLOW))
+        polygon_border_style_action_solid = self.new_action(
+            'Solid', lambda _: setattr(self.label.drawer,
+                                       'polygon_border_style', BorderStyle.SOLID))
+        polygon_border_style_action_dash = self.new_action(
+            'Dash', lambda _: setattr(self.label.drawer,
+                                      'polygon_border_style', BorderStyle.DASH))
+        polygon_border_style_action_dashdot = self.new_action(
+            'Dash Dot', lambda _: setattr(self.label.drawer,
+                                          'polygon_border_style', BorderStyle.DASH_DOT))
+        polygon_border_style_action_dashdotdot = self.new_action(
+            'Dash Dot Dot', lambda _: setattr(self.label.drawer,
+                                              'polygon_border_style',
+                                              BorderStyle.DASH_DOT_DOT))
+        polygon_border_color_action_red = self.new_action(
+            'Red', lambda _: setattr(self.label.drawer,
+                                     'polygon_border_color', Color.RED))
+        polygon_border_color_action_orange = self.new_action(
+            'Orange', lambda _: setattr(self.label.drawer,
+                                        'polygon_border_color', Color.ORANGE_LIGHT))
+        polygon_border_color_action_yellow = self.new_action(
+            'Yellow', lambda _: setattr(self.label.drawer,
+                                        'polygon_border_color', Color.YELLOW))
+        polygon_style_action_solid = self.new_action(
+            'Solid', lambda _: setattr(self.label.drawer,
+                                       'polygon_style', SurfaceStyle.SOLID))
+        polygon_style_action_dense = self.new_action(
+            'Dense', lambda _: setattr(self.label.drawer,
+                                       'polygon_style', SurfaceStyle.DENSE))
+        polygon_style_action_diagcross = self.new_action(
+            'Diag cross', lambda _: setattr(self.label.drawer,
+                                            'polygon_style', SurfaceStyle.DIAGCROSS))
+        polygon_color_action_red = self.new_action(
+            'Red', lambda _: setattr(self.label.drawer,
+                                     'polygon_color', Color.RED))
+        polygon_color_action_orange = self.new_action(
+            'Orange', lambda _: setattr(self.label.drawer,
+                                        'polygon_color', Color.ORANGE_DARK))
+        polygon_color_action_yellow = self.new_action(
+            'Yellow', lambda _: setattr(self.label.drawer,
+                                        'polygon_color', Color.YELLOW))
+
+        sphere_border_style_action_solid = self.new_action(
+            'Solid', lambda _: setattr(self.label.drawer,
+                                       'sphere_border_style', BorderStyle.SOLID))
+        sphere_border_style_action_dash = self.new_action(
+            'Dash', lambda _: setattr(self.label.drawer,
+                                      'sphere_border_style', BorderStyle.DASH))
+        sphere_border_style_action_dashdot = self.new_action(
+            'Dash Dot', lambda _: setattr(self.label.drawer,
+                                          'sphere_border_style', BorderStyle.DASH_DOT))
+        sphere_border_style_action_dashdotdot = self.new_action(
+            'Dash Dot Dot', lambda _: setattr(self.label.drawer,
+                                              'sphere_border_style',
+                                              BorderStyle.DASH_DOT_DOT))
+        sphere_border_color_action_red = self.new_action(
+            'Red', lambda _: setattr(self.label.drawer,
+                                     'sphere_border_color', Color.RED))
+        sphere_border_color_action_orange = self.new_action(
+            'Orange', lambda _: setattr(self.label.drawer,
+                                        'sphere_border_color', Color.ORANGE_LIGHT))
+        sphere_border_color_action_yellow = self.new_action(
+            'Yellow', lambda _: setattr(self.label.drawer,
+                                        'sphere_border_color', Color.YELLOW))
+        sphere_style_action_solid = self.new_action(
+            'Solid', lambda _: setattr(self.label.drawer,
+                                       'sphere_style', SurfaceStyle.SOLID))
+        sphere_style_action_dense = self.new_action(
+            'Dense', lambda _: setattr(self.label.drawer,
+                                       'sphere_style', SurfaceStyle.DENSE))
+        sphere_style_action_diagcross = self.new_action(
+            'Diag cross', lambda _: setattr(self.label.drawer,
+                                            'sphere_style', SurfaceStyle.DIAGCROSS))
+        sphere_color_action_red = self.new_action(
+            'Red', lambda _: setattr(self.label.drawer,
+                                     'sphere_color', Color.RED))
+        sphere_color_action_orange = self.new_action(
+            'Orange', lambda _: setattr(self.label.drawer,
+                                        'sphere_color', Color.ORANGE_DARK))
+        sphere_color_action_yellow = self.new_action(
+            'Yellow', lambda _: setattr(self.label.drawer,
+                                        'sphere_color', Color.YELLOW))
+
         edit_mode = self.new_action(
             'Edit', lambda _: self.set_mode(Mode.EDIT), shortcut='Q')
         view_mode = self.new_action(
             'View', lambda _: self.set_mode(Mode.VIEW), shortcut='E')
         resize_mode = self.new_action(
-            'Resize', lambda _: self.set_mode(Mode.RESIZE), shortcut='R')
+            'Resize', lambda _: self.set_mode(Mode.RESIZE), shortcut='Ctrl+R')
         cross_mode = self.new_action(
-            'Cross', lambda _: self.set_mode(Mode.CROSS), shortcut='T')
+            'Cross', lambda _: self.set_mode(Mode.CROSS), shortcut='Ctrl+T')
+        style_mode = self.new_action(
+            'Style', lambda _: self.set_mode(Mode.STYLE), shortcut='C')
         # TODO Modes menu
         menubar = self.menuBar()
         menubar.setStyleSheet("""QMenuBar {
@@ -407,28 +518,60 @@ class RedactorWindow(QtWidgets.QMainWindow):
         pt_settings.addAction(point_color_action_orange)
         pt_settings.addAction(point_color_action_yellow)
         ln_settings = settings.addMenu('Line')
-        ln_settings_style = ln_settings.addMenu('Style')  # TODO
+        ln_settings_style = ln_settings.addMenu('Style')
         ln_settings_style.addAction(line_style_action_solid)
         ln_settings_style.addAction(line_style_action_dash)
         ln_settings_style.addAction(line_style_action_dashdot)
         ln_settings_style.addAction(line_style_action_dashdotdot)
-        ln_settings_width = ln_settings.addMenu('Width')  # TODO
-        ln_settings_color = ln_settings.addMenu('Color')  # TODO
+        ln_settings_color = ln_settings.addMenu('Color')
+        ln_settings_color.addAction(line_color_action_red)
+        ln_settings_color.addAction(line_color_action_orange)
+        ln_settings_color.addAction(line_color_action_yellow)
         pg_settings = settings.addMenu('Polygon')
-        pg_settings_border_style = pg_settings.addMenu('Border Style')  # ToDO
-        pg_settings_border_color = pg_settings.addMenu('Border Style')  # TODO
-        pg_settings_style = pg_settings.addMenu('Style')  # TODO
-        pg_settings_color = pg_settings.addMenu('Color')  # TODO
+        pg_settings_border_style = pg_settings.addMenu('Border Style')
+        pg_settings_border_style.addAction(polygon_border_style_action_solid)
+        pg_settings_border_style.addAction(polygon_border_style_action_dash)
+        pg_settings_border_style.addAction(
+            polygon_border_style_action_dashdot)
+        pg_settings_border_style.addAction(
+            polygon_border_style_action_dashdotdot)
+        pg_settings_border_color = pg_settings.addMenu('Border Color')
+        pg_settings_border_color.addAction(polygon_border_color_action_red)
+        pg_settings_border_color.addAction(polygon_border_color_action_orange)
+        pg_settings_border_color.addAction(polygon_border_color_action_yellow)
+        pg_settings_style = pg_settings.addMenu('Style')
+        pg_settings_style.addAction(polygon_style_action_solid)
+        pg_settings_style.addAction(polygon_style_action_dense)
+        pg_settings_style.addAction(polygon_style_action_diagcross)
+        pg_settings_color = pg_settings.addMenu('Color')
+        pg_settings_color.addAction(polygon_color_action_red)
+        pg_settings_color.addAction(polygon_color_action_orange)
+        pg_settings_color.addAction(polygon_color_action_yellow)
         sp_settings = settings.addMenu('Sphere')
-        sp_settings_border_style = sp_settings.addMenu('Border Style')  # ToDO
-        sp_settings_border_color = sp_settings.addMenu('Border Style')  # TODO
-        sp_settings_style = sp_settings.addMenu('Style')  # TODO
-        sp_settings_color = sp_settings.addMenu('Color')  # TODO
+        sp_settings_border_style = sp_settings.addMenu('Border Style')
+        sp_settings_border_style.addAction(sphere_border_style_action_solid)
+        sp_settings_border_style.addAction(sphere_border_style_action_dash)
+        sp_settings_border_style.addAction(sphere_border_style_action_dashdot)
+        sp_settings_border_style.addAction(
+            sphere_border_style_action_dashdotdot)
+        sp_settings_border_color = sp_settings.addMenu('Border Color')
+        sp_settings_border_color.addAction(sphere_border_color_action_red)
+        sp_settings_border_color.addAction(sphere_border_color_action_orange)
+        sp_settings_border_color.addAction(sphere_border_color_action_yellow)
+        sp_settings_style = sp_settings.addMenu('Style')
+        sp_settings_style.addAction(sphere_style_action_solid)
+        sp_settings_style.addAction(sphere_style_action_dense)
+        sp_settings_style.addAction(sphere_style_action_diagcross)
+        sp_settings_color = sp_settings.addMenu('Color')
+        sp_settings_color.addAction(sphere_color_action_red)
+        sp_settings_color.addAction(sphere_color_action_orange)
+        sp_settings_color.addAction(sphere_color_action_yellow)
         mode_menu = menubar.addMenu('Modes')
         mode_menu.addAction(edit_mode)
         mode_menu.addAction(view_mode)
         mode_menu.addAction(resize_mode)
         mode_menu.addAction(cross_mode)
+        mode_menu.addAction(style_mode)
         toolbar = QtWidgets.QToolBar(self)
         self.addToolBar(QtCore.Qt.LeftToolBarArea, toolbar)
         toolbar.addAction(point_action)
@@ -466,7 +609,11 @@ class RedactorWindow(QtWidgets.QMainWindow):
 
     def set_mode(self, mode: Mode):  # deconstructors for modes
         if self.mode == Mode.POLYGON and len(self.buffer) > 2:
-            self.model.add_polygon(self.buffer)
+            self.model.add_polygon(self.buffer,
+                                   self.label.drawer.polygon_border_color,
+                                   self.label.drawer.polygon_border_style,
+                                   self.label.drawer.polygon_color,
+                                   self.label.drawer.polygon_style)
         self.buffer = []
         self.mode = mode
         self.update_display()
@@ -488,7 +635,7 @@ class RedactorWindow(QtWidgets.QMainWindow):
             with open(filename, 'r', encoding='utf8') as file:
                 self.model.open(file)
         except FileNotFoundError:
-            print("not found the file")
+            QtWidgets.QMessageBox.about(self, 'Error', 'File not found')
         self.label.drawer = Drawer(self.model)
         self.update_display()
 
@@ -503,15 +650,20 @@ class RedactorWindow(QtWidgets.QMainWindow):
         try:
             with open(filename, 'w', encoding='utf8') as file:
                 self.model.save(file)
-        except IOError:
-            print('save was interrupted')
+        except PermissionError:
+            QtWidgets.QMessageBox.about(self, 'Error', 'Permission Error')
         self.update_display()
 
     def screenshot(self, filename):
         filename, ok = QtWidgets.QInputDialog.getText(
             self, 'Filename',
-            'Enter the filename to save screen(without extention):')
+            'Enter the filename to save screen:')
         if not ok:
             return
         screen = QtWidgets.QApplication.primaryScreen()
-        screen.grabWindow(self.winId()).save(filename + '.png', 'png')
+        if not filename.endswith('.png'):
+            filename += '.png'
+        try:
+            screen.grabWindow(self.winId()).save(filename, 'png')
+        except PermissionError:
+            QtWidgets.QMessageBox.about(self, 'Error', 'Permission Error')
