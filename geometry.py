@@ -1,5 +1,6 @@
 from serializable import Serializable
 
+
 class Vector3(Serializable):
     NAME = 'Vector3'
 

@@ -25,10 +25,10 @@ class Model:
                         obj.almost_equal(model_obj):
                     return model_obj
             self.add_point(obj)
-        
+
         return obj
 
-    def add_point(self, vector, color= Color.ORANGE_LIGHT):
+    def add_point(self, vector, color=Color.ORANGE_LIGHT):
         if isinstance(vector, Vector3):
             self.objects.append(Point(vector.x, vector.y, vector.z,
                                       color=color))

@@ -17,6 +17,9 @@ class GeometryTests(unittest.TestCase):
         vector1 = Vector3(1, 2, 3)
         vector2 = Vector3(2, 3, 1)
         self.assertEqual(vector1 * vector2, Vector3(-7, 5, -1))
+        vector1 = Vector3(1, 2, 3)
+        mult = 12
+        self.assertEqual(vector1 * mult, Vector3(12, 24, 36))
 
     def test_matrix_create(self):
         matrix = Matrix(2, 2, 1, 1, 0, 0)
@@ -40,3 +43,8 @@ class GeometryTests(unittest.TestCase):
         self.assertEqual(Matrix(3, 3, 1, 4, 1, 2, 2, 7,
                                 13, 5, 3).transpose().to_tuple(),
                          (1, 2, 13, 4, 2, 5, 1, 7, 3))
+
+    def test_distance_vector(self):
+        self.assertAlmostEqual(Vector3.distance(Vector3(0, 0, 0),
+                                                Vector3(12, 13, 14)),
+                               22.5610283, delta=1e-5)

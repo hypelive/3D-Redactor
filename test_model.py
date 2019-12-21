@@ -1,5 +1,5 @@
 import unittest
-from model import Model
+from model import Model, Line, Polygon, Point
 from geometry import Vector3, Matrix  # qt
 import math
 
@@ -89,3 +89,24 @@ class RedactorTests(unittest.TestCase):
                                   Vector3(-1, 0, 0)])
         self.assertEqual(model.undisplay_vector(
                          Vector3(2, 3, -1)), (1, 2, 3))
+
+    def test_cross_line_poly(self):
+        model = Model()
+        model._set_display_basis([Vector3(0, 0, 1), Vector3(0, 1, 0),
+                                  Vector3(-1, 0, 0)])
+        cross = model.get_line_poly_cross(
+            Line(Point(0, 0, 0), Point(1, 1, 1)),
+            Polygon([Point(-1, 0, 0), Point(-1, -1, 0), Point(1, 0, 0)]))
+        self.assertEqual(len(cross), 1)
+        self.assertTrue(Point(0, 0, 0).almost_equal(cross[0]))
+
+    def test_cross_poly_poly(self):
+        model = Model()
+        model._set_display_basis([Vector3(0, 0, 1), Vector3(0, 1, 0),
+                                  Vector3(-1, 0, 0)])
+        cross = model.get_polys_cross(
+            Polygon([Point(1, 0, 1), Point(-1, 0, 1), Point(1, 0, -1)]),
+            Polygon([Point(-100, 0, 0), Point(0, -100, 0), Point(100, 0, 0)]))
+        self.assertEqual(len(cross), 2)
+        self.assertTrue(any(map(Point(1, 0, 0).almost_equal, cross)))
+        self.assertTrue(any(map(Point(0, 0, 0).almost_equal, cross)))

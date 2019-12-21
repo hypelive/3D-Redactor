@@ -24,6 +24,7 @@ SURFACE_STYLES = {
     SurfaceStyle.DIAGCROSS: QtCore.Qt.DiagCrossPattern
 }
 
+
 class Drawer:
     def __init__(self, model):
         self.model = model
