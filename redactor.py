@@ -151,7 +151,11 @@ class SceneWindow(QtWidgets.QLabel):
     def delete_object(self, event):
         self.update_object_to_interact(event)
         if self.object_to_interact:
-            self.parent().model.objects.remove(self.object_to_interact)
+            try:
+                self.parent().model.objects.remove(self.object_to_interact)
+            except ValueError:
+                pass
+        self.object_to_interact = None
 
     def choose_cross_object(self, event):
         self.update_object_to_interact(event)
@@ -632,7 +636,7 @@ class RedactorWindow(QtWidgets.QMainWindow):
             return
         self.model = model.Model()
         try:
-            with open(filename, 'r', encoding='utf8') as file:
+            with open('saves/' + filename, 'r', encoding='utf8') as file:
                 self.model.open(file)
         except FileNotFoundError:
             QtWidgets.QMessageBox.about(self, 'Error', 'File not found')
@@ -648,7 +652,7 @@ class RedactorWindow(QtWidgets.QMainWindow):
         if not ok:
             return
         try:
-            with open(filename, 'w', encoding='utf8') as file:
+            with open('saves/' + filename, 'w', encoding='utf8') as file:
                 self.model.save(file)
         except PermissionError:
             QtWidgets.QMessageBox.about(self, 'Error', 'Permission Error')

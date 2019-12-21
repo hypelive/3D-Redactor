@@ -92,6 +92,7 @@ class Drawer:
 
         self.draw_coordinates_system(painter)
 
+        self.displayed_objects = []
         for obj in self.model.objects:
             self.paint_object(
                 obj, split_coordinates, zoom, painter)
