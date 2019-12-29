@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class BorderStyle(Enum):
     SOLID = 0
     DASH = 1

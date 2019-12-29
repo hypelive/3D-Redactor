@@ -202,8 +202,10 @@ class SceneWindow(QtWidgets.QLabel):
                         self.parent().model.display_plate_basis[1] *
                         (self.calc_y(pos.y()) - self.split_coordinates[1]))
         self.parent().statusBar().showMessage(
-            f'Mode: {str(self.parent().mode)[5:]}; x={round(global_coord.x, 1)} ' +
-            f'y={round(global_coord.y, 1)} z={round(global_coord.z, 1)}; Zoom: {round(self.zoom, 2)}')
+            f'Mode: {str(self.parent().mode)[5:]};' +
+            f' x={round(global_coord.x, 1)} ' +
+            f'y={round(global_coord.y, 1)} z={round(global_coord.z, 1)};' +
+            f' Zoom: {round(self.zoom, 2)}')
 
     def edit_object(self, event):
         if (self.object_to_interact and time.time() - self.last_time_clicked <
@@ -412,13 +414,16 @@ class RedactorWindow(QtWidgets.QMainWindow):
                                         'line_color', Color.YELLOW))
         polygon_border_style_action_solid = self.new_action(
             'Solid', lambda _: setattr(self.label.drawer,
-                                       'polygon_border_style', BorderStyle.SOLID))
+                                       'polygon_border_style',
+                                       BorderStyle.SOLID))
         polygon_border_style_action_dash = self.new_action(
             'Dash', lambda _: setattr(self.label.drawer,
-                                      'polygon_border_style', BorderStyle.DASH))
+                                      'polygon_border_style',
+                                      BorderStyle.DASH))
         polygon_border_style_action_dashdot = self.new_action(
             'Dash Dot', lambda _: setattr(self.label.drawer,
-                                          'polygon_border_style', BorderStyle.DASH_DOT))
+                                          'polygon_border_style',
+                                          BorderStyle.DASH_DOT))
         polygon_border_style_action_dashdotdot = self.new_action(
             'Dash Dot Dot', lambda _: setattr(self.label.drawer,
                                               'polygon_border_style',
@@ -428,7 +433,8 @@ class RedactorWindow(QtWidgets.QMainWindow):
                                      'polygon_border_color', Color.RED))
         polygon_border_color_action_orange = self.new_action(
             'Orange', lambda _: setattr(self.label.drawer,
-                                        'polygon_border_color', Color.ORANGE_LIGHT))
+                                        'polygon_border_color',
+                                        Color.ORANGE_LIGHT))
         polygon_border_color_action_yellow = self.new_action(
             'Yellow', lambda _: setattr(self.label.drawer,
                                         'polygon_border_color', Color.YELLOW))
@@ -440,7 +446,8 @@ class RedactorWindow(QtWidgets.QMainWindow):
                                        'polygon_style', SurfaceStyle.DENSE))
         polygon_style_action_diagcross = self.new_action(
             'Diag cross', lambda _: setattr(self.label.drawer,
-                                            'polygon_style', SurfaceStyle.DIAGCROSS))
+                                            'polygon_style',
+                                            SurfaceStyle.DIAGCROSS))
         polygon_color_action_red = self.new_action(
             'Red', lambda _: setattr(self.label.drawer,
                                      'polygon_color', Color.RED))
@@ -453,13 +460,16 @@ class RedactorWindow(QtWidgets.QMainWindow):
 
         sphere_border_style_action_solid = self.new_action(
             'Solid', lambda _: setattr(self.label.drawer,
-                                       'sphere_border_style', BorderStyle.SOLID))
+                                       'sphere_border_style',
+                                       BorderStyle.SOLID))
         sphere_border_style_action_dash = self.new_action(
             'Dash', lambda _: setattr(self.label.drawer,
-                                      'sphere_border_style', BorderStyle.DASH))
+                                      'sphere_border_style',
+                                      BorderStyle.DASH))
         sphere_border_style_action_dashdot = self.new_action(
             'Dash Dot', lambda _: setattr(self.label.drawer,
-                                          'sphere_border_style', BorderStyle.DASH_DOT))
+                                          'sphere_border_style',
+                                          BorderStyle.DASH_DOT))
         sphere_border_style_action_dashdotdot = self.new_action(
             'Dash Dot Dot', lambda _: setattr(self.label.drawer,
                                               'sphere_border_style',
@@ -469,7 +479,8 @@ class RedactorWindow(QtWidgets.QMainWindow):
                                      'sphere_border_color', Color.RED))
         sphere_border_color_action_orange = self.new_action(
             'Orange', lambda _: setattr(self.label.drawer,
-                                        'sphere_border_color', Color.ORANGE_LIGHT))
+                                        'sphere_border_color',
+                                        Color.ORANGE_LIGHT))
         sphere_border_color_action_yellow = self.new_action(
             'Yellow', lambda _: setattr(self.label.drawer,
                                         'sphere_border_color', Color.YELLOW))
@@ -481,7 +492,8 @@ class RedactorWindow(QtWidgets.QMainWindow):
                                        'sphere_style', SurfaceStyle.DENSE))
         sphere_style_action_diagcross = self.new_action(
             'Diag cross', lambda _: setattr(self.label.drawer,
-                                            'sphere_style', SurfaceStyle.DIAGCROSS))
+                                            'sphere_style',
+                                            SurfaceStyle.DIAGCROSS))
         sphere_color_action_red = self.new_action(
             'Red', lambda _: setattr(self.label.drawer,
                                      'sphere_color', Color.RED))
