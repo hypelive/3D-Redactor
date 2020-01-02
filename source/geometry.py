@@ -1,4 +1,4 @@
-from serializable import Serializable
+from .serializable import Serializable
 
 
 class Vector3(Serializable):

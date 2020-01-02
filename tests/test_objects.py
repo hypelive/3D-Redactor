@@ -1,6 +1,10 @@
 import unittest
-from objects import Point, Line, Polygon, Sphere
-from geometry import Vector3
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             os.path.pardir))
+from source.objects import Point, Line, Polygon, Sphere
+from source.geometry import Vector3
 
 
 class ObjectTests(unittest.TestCase):

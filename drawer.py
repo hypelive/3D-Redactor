@@ -1,8 +1,8 @@
-from objects import Point, Line, Polygon, Sphere, Cylinder
+from source.objects import Point, Line, Polygon, Sphere, Cylinder
 from PyQt5 import QtGui, QtWidgets, QtCore
-from color import Color
-from borderStyle import BorderStyle
-from surfaceStyle import SurfaceStyle
+from source.color import Color
+from source.borderStyle import BorderStyle
+from source.surfaceStyle import SurfaceStyle
 
 COLORS = {
     Color.RED: QtCore.Qt.red,
@@ -26,6 +26,9 @@ SURFACE_STYLES = {
 
 
 class Drawer:
+    DEFAULT_COLOR_LIGHT = (255, 102, 0)
+    DEFAULT_COLOR_DARK = (230, 102, 30)
+
     def __init__(self, model):
         self.model = model
         self.displayed_objects = []  # to hide objects later
@@ -33,6 +36,7 @@ class Drawer:
 
         self.style_settings = {}
 
+        self.current_color = self.DEFAULT_COLOR_LIGHT
         self.point_color = Color.ORANGE_LIGHT
         self.line_color = Color.ORANGE_LIGHT
         self.line_style = BorderStyle.SOLID
@@ -85,7 +89,7 @@ class Drawer:
         #self.style[stylename] = param
         pass
 
-    def update_scene(self, painter, resolution, split_coordinates, zoom):
+    def update_scene(self, painter, resolution, split_coordinates, zoom, objects_to_highlit=set()):
         self.set_painter_params(painter)
         painter.fillRect(
             0, 0, resolution[0], resolution[1],
@@ -96,9 +100,9 @@ class Drawer:
         self.displayed_objects = []
         for obj in self.model.objects:
             self.paint_object(
-                obj, split_coordinates, zoom, painter)
+                obj, split_coordinates, zoom, painter, objects_to_highlit)
 
-    def paint_object(self, obj, split_coordinates, zoom, painter):
+    def paint_object(self, obj, split_coordinates, zoom, painter, objects_to_highlit):
         for obj in self.model.objects:
             if isinstance(obj, Point):
                 display_coord = self.model.display_vector(
@@ -110,7 +114,7 @@ class Drawer:
             # if not obj in self.style_settings:
             #    self.update_style(obj)
             # if self.is_visible(obj): # for perspective need
-            self.draw_table[type(obj)](obj, painter, zoom)
+            self.draw_table[type(obj)](obj, painter, zoom, objects_to_highlit)
             self.displayed_objects.append(obj)
 
     def is_visible(self, obj):
@@ -123,7 +127,7 @@ class Drawer:
         painter.setPen(QtGui.QPen(pen_color, pen_width, pen_style))
         painter.setBrush(QtGui.QBrush(brush_color, brush_style))
 
-    def paint_pt(self, point, painter, zoom):
+    def paint_pt(self, point, painter, zoom, objects_to_highlit):
         self.set_painter_params(painter, pen_color=COLORS[point.color],
                                 brush_color=COLORS[point.color])
         painter.drawEllipse(self.points_display_table[point][0] -
@@ -132,7 +136,7 @@ class Drawer:
                             point.WIDTH / 2,
                             point.WIDTH, point.WIDTH)
 
-    def paint_ln(self, line, painter, zoom):
+    def paint_ln(self, line, painter, zoom, objects_to_highlit):
         self.set_painter_params(painter, pen_style=BORDER_STYLES[line.style],
                                 pen_color=COLORS[line.color])
         painter.pen().setWidth(line.WIDTH)
@@ -140,7 +144,7 @@ class Drawer:
             *self.points_display_table[line.start],
             *self.points_display_table[line.end])
 
-    def paint_pg(self, polygon, painter, zoom):
+    def paint_pg(self, polygon, painter, zoom, objects_to_highlit):
         self.set_painter_params(painter,
                                 pen_style=BORDER_STYLES[polygon.border_style],
                                 pen_color=COLORS[polygon.border_color],
@@ -151,7 +155,7 @@ class Drawer:
             *[QtCore.QPointF(*self.points_display_table[point])
               for point in polygon.points])
 
-    def paint_sp(self, sphere, painter, zoom):
+    def paint_sp(self, sphere, painter, zoom, objects_to_highlit):
         self.set_painter_params(painter,
                                 pen_style=BORDER_STYLES[sphere.border_style],
                                 pen_color=COLORS[sphere.border_color],

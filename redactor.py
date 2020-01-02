@@ -1,15 +1,15 @@
 import sys
 import time
 from PyQt5 import QtGui, QtWidgets, QtCore
-import model
-from geometry import Matrix, Vector3
-from objects import Point, Line, Polygon, Sphere, Cylinder
+from source import model
+from source.geometry import Matrix, Vector3
+from source.objects import Point, Line, Polygon, Sphere, Cylinder
 from drawer import Drawer
 import math
 from enum import Enum
-from color import Color
-from borderStyle import BorderStyle
-from surfaceStyle import SurfaceStyle
+from source.color import Color
+from source.borderStyle import BorderStyle
+from source.surfaceStyle import SurfaceStyle
 import asyncio
 
 
@@ -22,7 +22,7 @@ class Mode(Enum):
     RESIZE = 2
     DELETE = 8
     CROSS = 9
-    STYLE = 10
+    MODIFY = 10
     POINT = 3
     LINE = 4
     POLYGON = 5
@@ -66,12 +66,12 @@ class SceneWindow(QtWidgets.QLabel):
         return QtGui.QPainter(self.pixmap())
 
     def wheelEvent(self, event):
-        if self.zoom < 0.15:
-            self.zoom = max(self.zoom, self.zoom+event.angleDelta().y()/2880)
+        self.zoom += (event.angleDelta().y()/180 if self.zoom > 1 else
+                      event.angleDelta().y()/1800)
+        if self.zoom < 0.1:
+            self.zoom = 0.1
         elif self.zoom > 10:
-            self.zoom = min(self.zoom, self.zoom+event.angleDelta().y()/2880)
-        else:
-            self.zoom += event.angleDelta().y()/2880
+            self.zoom = 10
         self.parent().update_display()
 
     def mousePressEvent(self, event):
@@ -87,7 +87,7 @@ class SceneWindow(QtWidgets.QLabel):
             self.delete_object(event)
         elif self.parent().mode == Mode.CROSS:
             self.choose_cross_object(event)
-        elif self.parent().mode == Mode.STYLE:
+        elif self.parent().mode == Mode.MODIFY:
             self.set_current_style_to_object(event)
 
         self.object_to_interact = None
@@ -182,6 +182,13 @@ class SceneWindow(QtWidgets.QLabel):
         self.update_object_to_interact(event)
         if self.object_to_interact:
             self.object_to_interact.set_style(self.drawer)
+    
+    def choose_object_to_modify(self, event):
+        self.update_object_to_interact(event)
+        self.object_to_modify = self.object_to_interact
+        # nado li na none sbrosit obj to interact?
+        self.parent().update_modifybar()
+
 
     def mouseMoveEvent(self, event: QtGui.QMouseEvent):
         if self.parent().mode == Mode.VIEW:
@@ -319,31 +326,35 @@ class RedactorWindow(QtWidgets.QMainWindow):
         self.display_axiss = True
 
         rotate_angle = math.pi / 90
-        self.rotate = {
-            QtCore.Qt.Key_W: Matrix(3, 3, math.cos(rotate_angle),
-                                    -math.sin(rotate_angle), 0,
-                                    math.sin(rotate_angle),
-                                    math.cos(rotate_angle),
-                                    0, 0, 0, 1),
-            QtCore.Qt.Key_R: Matrix(3, 3, 1, 0, 0, 0,
-                                    math.cos(rotate_angle),
-                                    -math.sin(rotate_angle), 0,
-                                    math.sin(rotate_angle),
-                                    math.cos(rotate_angle)),
-            QtCore.Qt.Key_S: Matrix(3, 3, math.cos(-rotate_angle),
-                                    -math.sin(-rotate_angle), 0,
-                                    math.sin(-rotate_angle),
-                                    math.cos(-rotate_angle),
-                                    0, 0, 0, 1),
-            QtCore.Qt.Key_A: Matrix(3, 3, math.cos(rotate_angle), 0,
-                                    math.sin(rotate_angle), 0, 1, 0,
-                                    -math.sin(rotate_angle), 0,
-                                    math.cos(rotate_angle)),
-
-            QtCore.Qt.Key_D: Matrix(3, 3, math.cos(-rotate_angle), 0,
-                                    math.sin(-rotate_angle), 0, 1, 0,
-                                    -math.sin(-rotate_angle), 0,
-                                    math.cos(-rotate_angle))
+        self.rotate_matrixes = {
+            'xplus': Matrix(3, 3, math.cos(rotate_angle),
+                            -math.sin(rotate_angle), 0,
+                            math.sin(rotate_angle),
+                            math.cos(rotate_angle),
+                            0, 0, 0, 1),
+            'zplus': Matrix(3, 3, 1, 0, 0, 0,
+                            math.cos(rotate_angle),
+                            -math.sin(rotate_angle), 0,
+                            math.sin(rotate_angle),
+                            math.cos(rotate_angle)),
+            'zminus': Matrix(3, 3, 1, 0, 0, 0,
+                             math.cos(-rotate_angle),
+                             -math.sin(-rotate_angle), 0,
+                             math.sin(-rotate_angle),
+                             math.cos(-rotate_angle)),
+            'xminus': Matrix(3, 3, math.cos(-rotate_angle),
+                             -math.sin(-rotate_angle), 0,
+                             math.sin(-rotate_angle),
+                             math.cos(-rotate_angle),
+                             0, 0, 0, 1),
+            'yminus': Matrix(3, 3, math.cos(rotate_angle), 0,
+                             math.sin(rotate_angle), 0, 1, 0,
+                             -math.sin(rotate_angle), 0,
+                             math.cos(rotate_angle)),
+            'yplus': Matrix(3, 3, math.cos(-rotate_angle), 0,
+                            math.sin(-rotate_angle), 0, 1, 0,
+                            -math.sin(-rotate_angle), 0,
+                            math.cos(-rotate_angle))
         }
 
         self.mode = Mode.VIEW
@@ -358,12 +369,27 @@ class RedactorWindow(QtWidgets.QMainWindow):
         self.setWindowIcon(icon)
         self.setWindowTitle('Black Box editor')
 
+        rotate_xplus_action = self.new_action(
+            '', lambda _: self.rotate('xplus'), shortcut='S')
+        rotate_xminus_action = self.new_action(
+            '', lambda _: self.rotate('xminus'), shortcut='W')
+        rotate_yplus_action = self.new_action(
+            '', lambda _: self.rotate('yplus'), shortcut='A')
+        rotate_yminus_action = self.new_action(
+            '', lambda _: self.rotate('yminus'), shortcut='D')
+        rotate_zplus_action = self.new_action(
+            '', lambda _: self.rotate('zplus'), shortcut='R')
+        rotate_zminus_action = self.new_action(
+            '', lambda _: self.rotate('zminus'), shortcut='Shift+R')
+        reset_scene_action = self.new_action(
+            'Reset', lambda _: (self.model.reset_display(),
+                                self.update_display()), shortcut='Space')
         new_scene_action = self.new_action(
-            'New', self.init_new_model, 'textures/new.png')
+            'New', self.init_new_model, 'textures/new.png', 'Ctrl+N')
         save_action = self.new_action(
             'Save', self.save_model, 'textures/save.png', 'Ctrl+S')
         open_action = self.new_action(
-            'Open', self.open_model, 'textures/open.png')
+            'Open', self.open_model, 'textures/open.png', 'Ctrl+O')
         screen_action = self.new_action(
             'Scr', self.screenshot, 'textures/screen.png')
         point_action = self.new_action(
@@ -513,8 +539,7 @@ class RedactorWindow(QtWidgets.QMainWindow):
         cross_mode = self.new_action(
             'Cross', lambda _: self.set_mode(Mode.CROSS), shortcut='Ctrl+T')
         style_mode = self.new_action(
-            'Style', lambda _: self.set_mode(Mode.STYLE), shortcut='C')
-        # TODO Modes menu
+            'Modify', lambda _: self.set_mode(Mode.MODIFY), shortcut='C')
         menubar = self.menuBar()
         menubar.setStyleSheet("""QMenuBar {
          background-color: rgb(220,150,120);
@@ -523,7 +548,15 @@ class RedactorWindow(QtWidgets.QMainWindow):
      QMenuBar::item {
          background: rgb(220,150,120);
      }""")
-        fileMenu = menubar.addMenu('Files')  # menu
+        rotations = menubar.addMenu('')
+        rotations.addAction(rotate_xplus_action)
+        rotations.addAction(rotate_yplus_action)
+        rotations.addAction(rotate_zplus_action)
+        rotations.addAction(rotate_xminus_action)
+        rotations.addAction(rotate_yminus_action)
+        rotations.addAction(rotate_zminus_action)
+        fileMenu = menubar.addMenu('Scene')
+        fileMenu.addAction(reset_scene_action)  # menu
         fileMenu.addAction(new_scene_action)
         fileMenu.addAction(save_action)
         fileMenu.addAction(open_action)
@@ -582,19 +615,31 @@ class RedactorWindow(QtWidgets.QMainWindow):
         sp_settings_color.addAction(sphere_color_action_red)
         sp_settings_color.addAction(sphere_color_action_orange)
         sp_settings_color.addAction(sphere_color_action_yellow)
-        mode_menu = menubar.addMenu('Modes')
-        mode_menu.addAction(edit_mode)
-        mode_menu.addAction(view_mode)
-        mode_menu.addAction(resize_mode)
-        mode_menu.addAction(cross_mode)
-        mode_menu.addAction(style_mode)
-        toolbar = QtWidgets.QToolBar(self)
-        self.addToolBar(QtCore.Qt.LeftToolBarArea, toolbar)
-        toolbar.addAction(point_action)
-        toolbar.addAction(line_action)
-        toolbar.addAction(polygon_action)
-        toolbar.addAction(sphere_action)
-        toolbar.addAction(delete_action)
+        self.mode_menu = menubar.addMenu('Modes')
+        edit_mode.setCheckable(True)
+        view_mode.setCheckable(True)
+        resize_mode.setCheckable(True)
+        cross_mode.setCheckable(True)
+        style_mode.setCheckable(True)
+        self.mode_menu.addAction(edit_mode)
+        self.mode_menu.addAction(view_mode)
+        self.mode_menu.addAction(resize_mode)
+        self.mode_menu.addAction(cross_mode)
+        self.mode_menu.addAction(style_mode)
+        self.toolbar = QtWidgets.QToolBar(self)
+        self.addToolBar(QtCore.Qt.LeftToolBarArea, self.toolbar)
+        point_action.setCheckable(True)
+        line_action.setCheckable(True)
+        polygon_action.setCheckable(True)
+        sphere_action.setCheckable(True)
+        delete_action.setCheckable(True)
+        self.toolbar.addAction(point_action)
+        self.toolbar.addAction(line_action)
+        self.toolbar.addAction(polygon_action)
+        self.toolbar.addAction(sphere_action)
+        self.toolbar.addAction(delete_action)
+        self.modifybar = QtWidgets.QToolBar(self)
+        self.addToolBar(QtCore.Qt.LeftToolBarArea, self.modifybar)
         self.statusBar()
 
         self.label = SceneWindow(self)
@@ -619,8 +664,6 @@ class RedactorWindow(QtWidgets.QMainWindow):
             self.display_axiss = not self.display_axiss
         # elif event.key() in self.modes:  # if we change when polygon
         #   self.set_mode(self.modes[event.key()])
-        elif event.key() in self.rotate:
-            self.model.update_display_matrix(self.rotate[event.key()])
         self.update_display()
 
     def set_mode(self, mode: Mode):  # deconstructors for modes
@@ -632,48 +675,57 @@ class RedactorWindow(QtWidgets.QMainWindow):
                                    self.label.drawer.polygon_style)
         self.buffer = []
         self.mode = mode
+        for action in self.toolbar.actions():
+            if action.isChecked() and 'Mode.' + action.iconText().upper() != str(mode):
+                action.setCheckable(False)
+                action.setCheckable(True)
+        for action in self.mode_menu.actions():
+            if action.isChecked() and 'Mode.' + action.iconText().upper() != str(mode):
+                action.setCheckable(False)
+                action.setCheckable(True)
+        self.update_display()
+
+    def rotate(self, axis):
+        self.model.update_display_matrix(self.rotate_matrixes[axis])
         self.update_display()
 
     def init_new_model(self):
         del(self.model)
         self.model = model.Model()
         self.label.drawer = Drawer(self.model)
+        self.label.zoom = 1
         self.update_display()
 
     def open_model(self):  # show the window where we can write filename
-        filename, ok = QtWidgets.QInputDialog.getText(
-            self, 'Filename',
-            'Enter the filename for open:')
+        filename, ok = QtWidgets.QFileDialog.getOpenFileName(self, 'open')
         if not ok:
             return
         self.model = model.Model()
         try:
-            with open('saves/' + filename, 'r', encoding='utf8') as file:
+            with open(filename, 'r', encoding='utf8') as file:
                 self.model.open(file)
-        except FileNotFoundError:
-            QtWidgets.QMessageBox.about(self, 'Error', 'File not found')
+        except OSError:
+            QtWidgets.QMessageBox.about(self, 'Error', 'Error')
         self.label.drawer = Drawer(self.model)
         self.update_display()
 
     def save_model(self):  # show the window where we can write filename
         if not self.model:
             return
-        filename, ok = QtWidgets.QInputDialog.getText(
-            self, 'Filename',
-            'Enter the filename for save:')
+        filename, ok = QtWidgets.QFileDialog.getSaveFileName(self, 'save')
         if not ok:
             return
         try:
-            with open('saves/' + filename, 'w', encoding='utf8') as file:
+            with open(filename, 'w', encoding='utf8') as file:
                 self.model.save(file)
-        except PermissionError:
-            QtWidgets.QMessageBox.about(self, 'Error', 'Permission Error')
+        except OSError:
+            QtWidgets.QMessageBox.about(self, 'Error', 'Error')
         self.update_display()
 
     def screenshot(self, filename):
-        filename, ok = QtWidgets.QInputDialog.getText(
-            self, 'Filename',
-            'Enter the filename to save screen:')
+        filename, ok = QtWidgets.QFileDialog.getSaveFileName(self,
+                                                             'save',
+                                                             'screen.png')
         if not ok:
             return
         screen = QtWidgets.QApplication.primaryScreen()

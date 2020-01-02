@@ -1,6 +1,9 @@
 import unittest
-from geometry import Vector3, Matrix  # qt
-import math
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             os.path.pardir))
+from source.geometry import Vector3, Matrix  # qt
 
 
 class GeometryTests(unittest.TestCase):

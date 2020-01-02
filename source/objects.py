@@ -1,9 +1,9 @@
-from geometry import Vector3
-from serializable import Serializable
+from .geometry import Vector3
+from .serializable import Serializable
 import json
-from color import Color
-from borderStyle import BorderStyle
-from surfaceStyle import SurfaceStyle
+from .color import Color
+from .borderStyle import BorderStyle
+from .surfaceStyle import SurfaceStyle
 
 
 class Point(Serializable):

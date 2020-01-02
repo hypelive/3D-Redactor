@@ -1,7 +1,7 @@
-from geometry import Vector3, Matrix
-from objects import Point, Line, Polygon, Sphere, Cylinder
-from serializable import Serializable
-from color import Color
+from .geometry import Vector3, Matrix
+from .objects import Point, Line, Polygon, Sphere, Cylinder
+from .serializable import Serializable
+from .color import Color
 import json
 
 
@@ -9,14 +9,8 @@ class Model:
     def __init__(self):
         self.basis = (Vector3(1, 0, 0), Vector3(0, 1, 0), Vector3(0, 0, 1))
         self.origin = Point(0, 0, 0)
-        self.display_plate_basis = [Vector3(0, 0, 1), Vector3(0, 1, 0),
-                                    Vector3(-1, 0, 0)]
-        self.display_plate_origin = Vector3(1000, 0, 0)
-        self.display_plate_border = [640, 360]
+        self.reset_display()
         self.objects = []
-        self.is_perspective = False
-        self.matrix_of_display = None
-        self.update_display_matrix(None)
 
     def search_or_add(self, obj, *args):
         if isinstance(obj, Point):
@@ -64,6 +58,13 @@ class Model:
 
     def _set_display_basis(self, basis: list):
         self.display_plate_basis = basis
+        self.update_display_matrix(None)
+
+    def reset_display(self):
+        self.display_plate_basis = [Vector3(0, 0, 1), Vector3(0, 1, 0),
+                                    Vector3(-1, 0, 0)]
+        self.display_plate_origin = Vector3(1000, 0, 0)
+        self.matrix_of_display = None
         self.update_display_matrix(None)
 
     def update_display_matrix(self, ort_matrix: Matrix) -> None:

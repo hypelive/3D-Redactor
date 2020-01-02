@@ -1,7 +1,11 @@
 import unittest
-from model import Model, Line, Polygon, Point
-from geometry import Vector3, Matrix  # qt
 import math
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             os.path.pardir))
+from source.model import Model, Line, Polygon, Point
+from source.geometry import Vector3, Matrix
 
 
 class RedactorTests(unittest.TestCase):
